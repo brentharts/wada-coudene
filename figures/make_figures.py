@@ -336,6 +336,73 @@ def fig_degree_sweep():
     print("wrote degree_sweep.png")
 
 
+def _read_scaling():
+    path = HERE / "radius_scaling.csv"
+    if not path.exists():       # ~30 minutes; the committed CSV is normally used
+        rows = low.sweep.harmonic_radius_scaling(DEGREES, ratio=3.0)
+        low.sweep.write_csv(rows, path)
+    with open(path) as f:
+        return [{k: float(v) for k, v in r.items()} for r in csv.DictReader(f)]
+
+
+def fig_radius_scaling():
+    rows = _read_scaling()
+    degs = sorted({int(r["degree"]) for r in rows})
+    sizes = sorted({int(r["n"]) for r in rows})
+    shades = ["#c6dbef", "#9ecae1", "#6baed6", "#3182bd", "#1d5a96", "#08306b"]
+    mk = ["o", "s", "^", "D", "v", "P"]
+    fig, axs = plt.subplots(1, 3, figsize=(14, 4.4), dpi=140, facecolor="white")
+
+    def style(ax, title, xl, yl):
+        ax.set_title(title, fontsize=10.5, color=INK, loc="left")
+        ax.set_xlabel(xl, color=INK2, fontsize=9); ax.set_ylabel(yl, color=INK2, fontsize=9)
+        ax.grid(True, color=GRID, lw=0.8, which="both"); ax.set_axisbelow(True)
+        for s_ in ("top", "right"):
+            ax.spines[s_].set_visible(False)
+        for s_ in ("left", "bottom"):
+            ax.spines[s_].set_color("#c3c2b7")
+        ax.tick_params(colors=INK2, labelsize=8.5)
+
+    # controls: three sectors (not Wada) and Newton z^3-1 (Wada), same diagnostic
+    ctl = {"sectors": [], "newton": []}
+    for n in sizes:
+        yy, xx = np.mgrid[0:n, 0:n]
+        ang = np.arctan2(yy - n / 2, xx - n / 2)
+        sect = np.clip(((ang + np.pi) / (2 * np.pi) * 3).astype(int), 0, 2) + 1
+        ctl["sectors"].append(low.wadatest.wada_radius(sect, (90,))["radius"][90] / n)
+        newt = low.entire_picture("newton", n=n, radius=1.5, degree=3).label
+        ctl["newton"].append(low.wadatest.wada_radius(newt, (90,), min_fraction=0.01)["radius"][90] / n)
+
+    for ax, key, title in ((axs[0], "band0.6", "Dense mixing band (boundary density ≥ 0.6)"),
+                           (axs[1], "rest0.6", "Rest of the boundary")):
+        for i, d in enumerate(degs):
+            rr = [r for r in rows if int(r["degree"]) == d]
+            ax.plot(sizes, [r[f"{key}_p90_frac"] for r in rr], color=shades[i], marker=mk[i], ms=5.5,
+                    mec="#1a1a1a", mew=0.5, lw=2, label=f"n = {d}")
+        ax.plot(sizes, ctl["sectors"], color="#8a8984", ls=":", lw=1.8, label="3 sectors (not Wada)")
+        ax.plot(sizes, ctl["newton"], color="#8a8984", ls="--", lw=1.8, label="Newton z³−1 (Wada)")
+        ax.set_xscale("log", base=2); ax.set_yscale("log")
+        ax.set_xticks(sizes); ax.set_xticklabels([str(n) for n in sizes])
+        style(ax, title, "grid size n (pixels)", "90th-percentile radius to see all exits / width")
+    axs[0].legend(frameon=False, fontsize=7, loc="center", bbox_to_anchor=(0.5, 0.84), ncol=4, columnspacing=1.0, handlelength=1.6)
+
+    ax = axs[2]
+    x = np.arange(len(degs))
+    for key, c, m, lab in (("band0.6", "#2a78d6", "o", "dense band"), ("rest0.6", "#eb6834", "s", "rest of boundary")):
+        ax.plot(x, [next(r for r in rows if int(r["degree"]) == d)[f"slope_{key}_p90"] for d in degs],
+                color=c, marker=m, ms=6, mec="white", mew=0.8, lw=2, label=lab)
+    ax.axhline(-1, color="#8a8984", ls="--", lw=1); ax.axhline(0, color="#8a8984", ls=":", lw=1)
+    ax.set_xticks(x); ax.set_xticklabels([str(d) for d in degs]); ax.set_ylim(-1.5, 0.15)
+    ax.text(-0.35, -0.97, "Wada-like (−1)", ha="left", va="bottom", fontsize=8, color=INK2)
+    ax.text(len(degs) - 0.55, 0.02, "stalled (0)", ha="right", va="bottom", fontsize=8, color=INK2)
+    style(ax, "Slope of log(radius/width) vs log n", "degree n = number of exits", "log-log slope (90th percentile)")
+    ax.legend(frameon=False, fontsize=8.5, loc="lower left")
+    fig.tight_layout()
+    fig.savefig(HERE / "radius_scaling.png", facecolor="white")
+    plt.close(fig)
+    print("wrote radius_scaling.png")
+
+
 JOBS = {
     "torus": lambda: fig_image("torus", "plasma", "torus.png"),
     "plane": lambda: fig_image("plane", "turbo", "plane.png", crop=True),
@@ -348,6 +415,7 @@ JOBS = {
     "energy_sweep": fig_energy_sweep,
     "degree_strip": fig_degree_strip,
     "degree_sweep": fig_degree_sweep,
+    "radius_scaling": fig_radius_scaling,
 }
 
 if __name__ == "__main__":
