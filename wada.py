@@ -70,7 +70,9 @@ def build_parser():
     add_output_args(e)
 
     sc = sub.add_parser("scatter", help="exit basins of an open Hamiltonian (Henon-Heiles)")
-    sc.add_argument("--system", choices=("henon-heiles",), default="henon-heiles")
+    sc.add_argument("--system", choices=("henon-heiles", "harmonic"), default="henon-heiles")
+    sc.add_argument("--degree", type=int, default=3,
+                    help="harmonic family V = r^2/2 + Im(z^n)/n: n exit channels (3 = Henon-Heiles)")
     sc.add_argument("--energy", type=float, default=0.25, help="energy (> 1/6 for exits)")
     sc.add_argument("--dim", type=int, choices=(2, 3), default=2,
                     help="2: section x=0 in (y, p_y); 3: whole energy surface")
@@ -81,6 +83,11 @@ def build_parser():
     sw = sub.add_parser("sweep", help="Henon-Heiles energy sweep of the Wada diagnostics")
     sw.add_argument("--energies", default="0.2,0.25,0.5,1,2,4,8,16",
                     help="comma-separated energies (> 1/6)")
+    sw.add_argument("--degrees", default=None,
+                    help="instead of an energy sweep: comma-separated degrees of the harmonic "
+                         "family, each at energy --ratio * (1/2 - 1/n)")
+    sw.add_argument("--ratio", type=float, default=1.5)
+    sw.add_argument("--t-max", type=float, default=400.0, help="(degree sweep) integration time")
     sw.add_argument("-n", "--size", type=int, default=500)
     sw.add_argument("--fine", type=int, default=None,
                     help="also measure the profile at this finer resolution (the trend with n)")
@@ -96,6 +103,16 @@ def build_parser():
 
 def main(argv=None):
     a = build_parser().parse_args(argv)
+    if a.cmd == "sweep" and a.degrees:
+        ds = [int(x) for x in a.degrees.split(",")]
+        fmt = "n={degree:<2d} E={energy:<6.4g} undecided={undecided_frac:6.3f} seen={n_basins_seen} " \
+              "wada_r3={wada_r3:5.3f} exits_only={wada_r3_exits:5.3f} min_basin={min_basin_r3_exits:5.3f} alpha={alpha:5.3f} ({seconds:.0f}s)"
+        rows, _ = low.sweep.harmonic_degree_sweep(ds, a.ratio, a.size, a.fine, t_max=a.t_max,
+                                                  progress=lambda r: print(fmt.format(**r)))
+        if a.csv:
+            low.sweep.write_csv(rows, a.csv)
+            print(f"Saved {a.csv}")
+        return
     if a.cmd == "sweep":
         es = [float(x) for x in a.energies.split(",")]
         fmt = "E={energy:<6g} undecided={undecided_frac:6.3f} wada_r3={wada_r3:5.3f} " \
@@ -124,9 +141,9 @@ def main(argv=None):
         stem = f"wada-entire-{a.family}-n{a.size}"
     elif a.cmd == "scatter":
         pic = low.scattering.scattering_picture(a.system, a.size, a.energy, a.dim,
-                                                a.dt, a.t_max)
+                                                a.dt, a.t_max, degree=a.degree)
         default_cmap = "Set2"
-        stem = f"wada-scatter-{a.system}-E{a.energy}-d{a.dim}-n{a.size}"
+        stem = f"wada-scatter-{a.system}{a.degree if a.system == 'harmonic' else ''}-E{a.energy}-d{a.dim}-n{a.size}"
     elif a.cmd == "canal":
         from lakes_of_wada.construction import wada_canals
         pic = wada_canals(a.size, a.lakes, a.stages, layout=a.layout)

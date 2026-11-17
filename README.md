@@ -155,6 +155,53 @@ threshold", not a reproduction of the 3D result. A weakly dissipative
 Henon-Heiles variant, which adds a trapped fourth basin, would be the closer
 analogue and is a natural next experiment.
 
+### 9. More exit channels: the harmonic-polynomial family (`degree_strip.png`, `degree_sweep.png`)
+
+![Exit basins for n = 3 to 8 channels](figures/degree_strip.png)
+
+![Degree sweep](figures/degree_sweep.png)
+
+Henon-Heiles is the cubic member of the family V = r^2/2 + Im(z^n)/n, which has
+n exit channels (the "harmonic polynomial potentials" that the pp-wave
+geodesic problem of Rossetto et al. reduces to; see Related work). Each degree
+is run at a common *relative* energy, E = 1.5 x E_saddle or 3 x E_saddle, where
+E_saddle = 1/2 - 1/n is the energy at which the channels open (`wada.py sweep
+--degrees 3,4,5,6,7,8`; data in `figures/degree_sweep_r1.5.csv` and
+`figures/degree_sweep_r3.csv`). The question was whether Wada-ness is special to
+three basins (colours). The strip shows the section at 3 x E_saddle.
+
+* **Three is not special in the sense of Wada-ness existing.** Every degree has
+  strongly intermingled boundaries (uncertainty exponent between 0.09 and 0.48
+  for every case, with no trend in n), and the pictures show the same
+  structure: a few large smooth regions plus a band where all the colours
+  interleave.
+* **The fraction of the boundary that is Wada-like falls steeply with n.** At
+  3 px the fraction of boundary pixels that see all n exits is 0.98 for n = 3,
+  0.90 for n = 4, about 0.5 for n = 5, 0.27-0.49 for n = 6, and 0.01-0.29 for
+  n = 7, 0.07-0.11 for n = 8 (the ranges are the two energies). At 6 px most of
+  them recover (0.75-0.99 for n <= 6 at 3 x E_saddle), so the exits are close
+  to every boundary point, but not within the 3 px scale.
+* **It is not a resolution effect.** The values at 500 px and 1000 px agree
+  within a few hundredths, whereas a smooth two-basin boundary would lose its
+  value as the grid is refined. The reading is that a fixed fraction of the
+  boundary is a scale-invariant mixing core where all n exits intermingle, and
+  the rest is smooth boundary between two large basins. That fraction decreases
+  as channels are added.
+
+What this does and does not show: this measures the fraction of *all* boundary
+pixels in one 2D section of one energy surface, which includes the smooth
+two-basin boundaries between the big regions. It does not test whether the
+mixing core by itself is Wada, so it neither confirms nor contradicts the
+robustness reported by Rossetto et al. (whose full text I could not read). Some
+details are unexplained and I have not chased them: degree 7 is much lower at
+1.5 x E_saddle (with 13% regular islands), and the trapped regular islands (5-13% for n = 4 to 7
+at 1.5 x E_saddle, under 0.2% at 3 x E_saddle) are excluded from these numbers
+(`*_exits` columns; the all-points versions are in the CSVs). Pixel values near
+the boundary also depend on the integration step (about 86-98% of the section
+agrees between dt = 0.05 and a much finer step), so statistics, not individual
+pixels, are what to trust. A first follow-up would be to restrict the test to
+the mixing band.
+
 ## About
 
 Python/Sagemath scripts to make pictures of "Lakes of Wada" sets in the plane and in the 2-torus, using the method described by Yves Coudene in [Pictures of Dynamical Systems, Notices of AMS 53, No 1, pp8-13](http://www.ams.org/notices/200601/fea-coudene.pdf).
@@ -189,6 +236,8 @@ Package layout: `maps` (Anosov map + pluggable perturbations), `classify`
     python3 wada.py scatter -n 500 --energy 0.25 --wada --merging     # Henon-Heiles exit basins
     python3 wada.py scatter -n 64 --dim 3 --data hh3d.npz --wada      # 3D energy surface
     python3 wada.py sweep --energies 0.2,1,4,16 -n 500 --csv sweep.csv # Henon-Heiles energy sweep
+    python3 wada.py scatter --system harmonic --degree 5 --energy 0.9 -n 500   # 5 exit channels
+    python3 wada.py sweep --degrees 3,4,5,6 --ratio 3 -n 500 --csv deg.csv      # vs number of exits
 
 * `lakes_of_wada.wadatest`: numerical Wada tests on a label array of **any
   dimension** (2D images, 3D volumes, ...). Labels: `>0` basins, `0` undecided
@@ -212,7 +261,9 @@ Package layout: `maps` (Anosov map + pluggable perturbations), `classify`
 * `lakes_of_wada.sweep`: `hh_energy_sweep` runs the Henon-Heiles section at a
   list of energies (using `scattering.energy_window` for the allowed region and
   `scattering.uncertainty_fraction` for the uncertainty exponent) and returns one
-  row of diagnostics per energy; `write_csv` saves them.
+  row of diagnostics per energy; `write_csv` saves them. `harmonic_degree_sweep`
+  does the same across the harmonic-polynomial family (`scattering.harmonic_polynomial`),
+  which has `degree` exit channels and contains Henon-Heiles as degree 3.
 * `lakes_of_wada.maverick`: per-pixel *orbit divergence*: the largest distance
   over a late window of iterates between a boundary pixel's orbit and the orbit
   of the nearest settled interior pixel of each basin (a finite-window proxy for
@@ -267,6 +318,25 @@ Package layout: `maps` (Anosov map + pluggable perturbations), `classify`
   [2601.02266](https://arxiv.org/abs/2601.02266)). Shows Lakes of Wada exist in
   the sphere S^n for every n >= 3, with lakes that are quasiconformally
   equivalent to a ball and are John domains.
+* P. H. B. Rossetto et al., *Robust Wada boundaries and entropy scaling in
+  pp-wave spacetimes*, Chaos 36, 063136 (2026),
+  [doi:10.1063/5.0336333](https://doi.org/10.1063/5.0336333). Geodesics of
+  pp-wave spacetimes with polynomial profiles are equivalent to a particle in a
+  2D harmonic polynomial potential (Henon-Heiles is the cubic case). The
+  abstract reports that the Wada property of the escape basins is robust as the
+  polynomial degree, and so the number of escape channels, increases. (Read from
+  the journal abstract only; the full text was not available.)
+* R. C. Pantig, *Symbolic dynamics of multi-black-hole photon scattering*,
+  Physica D (December 2026),
+  [doi:10.1016/j.physd.2026.135415](https://doi.org/10.1016/j.physd.2026.135415).
+  Listed here from its title and the journal's contents page; the abstract and
+  full text were not available when this entry was written.
+* A. Wagemakers, *Basins of Attraction: A Dynamical Zoo*, International Journal
+  of Bifurcation and Chaos 35(11) (2025),
+  [doi:10.1142/S0218127425300241](https://doi.org/10.1142/S0218127425300241).
+  Same group (Universidad Rey Juan Carlos) as several entries above. Listed from
+  the title, author and venue only; the abstract and full text were not
+  available when this entry was written.
 * Y. Coudène, *Pictures of Dynamical Systems*, Notices AMS 53 (2006), the
   method used by the original scripts.
 
