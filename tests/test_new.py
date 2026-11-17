@@ -304,3 +304,44 @@ def test_degree_sweep_smoke():
         assert r["n_basins_seen"] == r["degree"]
         assert 0 < r["alpha"] <= 1.2
         assert 0.0 <= r["wada_r3_exits"] <= 1.0
+
+
+# --- mixing band and the needed-radius diagnostic ---------------------------------
+
+def test_wada_radius_separates_wada_from_non_wada_by_scaling():
+    sl = low.sweep.radius_slope
+    sizes = (120, 240, 480)
+    sect = [W.wada_radius(sectors(n))["radius"][90] for n in sizes]
+    assert sl(sizes, sect) > -0.1                  # stalls at a fixed physical length
+    newt = [W.wada_radius(low.entire_picture("newton", n=n, radius=1.5, degree=3).label,
+                          min_fraction=0.01)["radius"][90] for n in sizes]
+    assert sl(sizes, newt) < -0.8                  # shrinks like 1/n
+
+
+def test_wada_radius_matches_profile():
+    L = low.entire_picture("newton", n=200, radius=1.5, degree=3).label
+    r = W.wada_radius(L, (50,), min_fraction=0.01)["radius"][50]
+    prof = W.wada_profile(L, (r,), min_fraction=0.01)["profile"][r]
+    assert prof >= 0.5 - 1e-9
+
+
+def test_mixing_band_is_a_subset_of_the_boundary():
+    L = sectors(200)
+    b = W.boundary_mask(L)
+    band = W.mixing_band(L, 8, 0.25)
+    assert (band & ~b).sum() == 0
+    d = W.boundary_density(L, 8)
+    assert d.min() >= 0 and d.max() <= 1
+    out = W.band_wada_profile(L, (1, 3), 8, 0.25)
+    assert 0.0 <= out["band_fraction"] <= 1.0
+    assert out["boundary_pixels"] == int(band.sum())
+    # the three-sector control has only a thin boundary: no dense mixing core
+    dense = W.mixing_band(L, 8, 0.6)
+    assert dense.sum() == 0
+
+
+def test_harmonic_radius_scaling_smoke():
+    rows = low.sweep.harmonic_radius_scaling([3], sizes=(80, 160, 320), t_max=60)
+    assert [r["n"] for r in rows] == [80, 160, 320]
+    assert rows[0]["slope_p90"] < -0.5
+    assert 0 <= rows[0]["rest0.6_pixels"] <= rows[0]["boundary_pixels"]
