@@ -78,6 +78,14 @@ def build_parser():
     sc.add_argument("--t-max", type=float, default=60.0)
     add_output_args(sc)
 
+    sw = sub.add_parser("sweep", help="Henon-Heiles energy sweep of the Wada diagnostics")
+    sw.add_argument("--energies", default="0.2,0.25,0.5,1,2,4,8,16",
+                    help="comma-separated energies (> 1/6)")
+    sw.add_argument("-n", "--size", type=int, default=500)
+    sw.add_argument("--fine", type=int, default=None,
+                    help="also measure the profile at this finer resolution (the trend with n)")
+    sw.add_argument("--csv", metavar="FILE.csv", default=None)
+
     c = sub.add_parser("canal", help="Wada canal construction on a raster (no dynamics)")
     c.add_argument("--lakes", type=int, default=3)
     c.add_argument("--stages", type=int, default=15)
@@ -88,6 +96,16 @@ def build_parser():
 
 def main(argv=None):
     a = build_parser().parse_args(argv)
+    if a.cmd == "sweep":
+        es = [float(x) for x in a.energies.split(",")]
+        fmt = "E={energy:<6g} undecided={undecided_frac:6.3f} wada_r3={wada_r3:5.3f} " \
+              "min_basin={min_basin_r3:5.3f} alpha={alpha:5.3f} ({seconds:.0f}s)"
+        rows, _ = low.sweep.hh_energy_sweep(es, a.size, a.fine,
+                                            progress=lambda r: print(fmt.format(**r)))
+        if a.csv:
+            low.sweep.write_csv(rows, a.csv)
+            print(f"Saved {a.csv}")
+        return
     if a.cmd == "torus":
         pic = low.torus_picture(a.size, a.amplitude, a.spread, a.islands, a.max_iter)
         default_cmap = "plasma"

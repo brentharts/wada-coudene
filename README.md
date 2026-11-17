@@ -113,6 +113,48 @@ all about equally far from one another, so they are clearly different sets and t
 partition is not Wada. The underlying numbers are in
 [`figures/wada_profiles.csv`](figures/wada_profiles.csv).
 
+### 8. Energy dependence of Wada-ness (`energy_strip.png`, `energy_sweep.png`)
+
+![Henon-Heiles exit basins at six energies](figures/energy_strip.png)
+
+![Energy sweep](figures/energy_sweep.png)
+
+Fernandez et al. (see Related work) report a three-dimensional scattering system
+in which Wada-ness disappears above a critical energy. Henon-Heiles is a different
+system (two degrees of freedom, a 2D position space), so this sweep does **not**
+test or reproduce their result. It asks only what the same diagnostics do as the
+energy rises from just above the escape energy 1/6 up to E = 64
+(`wada.py sweep`; data in [`figures/energy_sweep.csv`](figures/energy_sweep.csv)).
+The strip shows the x = 0, px >= 0 section (dark = still trapped at t_max, the
+three greens/grey = exits); the exit colours follow figure 4.
+
+What the numbers show:
+
+* **The boundary stops being strongly fractal.** The uncertainty exponent alpha
+  (measured by perturbing initial conditions, as in Aguirre et al.) rises from
+  about 0.09 at E = 0.19 to about 0.6-0.8 above E = 1, and 0.92 at E = 64.
+  Near the escape energy the basins are tightly interleaved; at high energy the
+  section is dominated by a few large smooth regions.
+* **Exit 2 gradually vanishes from the section.** Its share falls from 0.30 to
+  0.04 at E = 32 and to exactly 0 at E = 64, so the
+  three-basin Wada test is undefined there (the `nan` entries).
+* **The Wada profile degrades, but not cleanly.** At r = 3 px about 0.98-0.99 of
+  boundary pixels see all three exits for E <= 0.6, falling to about 0.89-0.94
+  for E >= 3; the least-Wada single basin falls further, to about 0.85-0.88.
+  The two resolutions disagree on the trend at high E (the 1000 px values are
+  lower than the 500 px values there, whereas below E = 3 they are similar),
+  which is the signature of boundaries that are becoming smooth, thin
+  structures rather than of a clear transition. There is no sharp critical
+  energy in these data.
+
+Caveats: this is one section of a 3D energy surface, the section is asymmetric
+(exit 3 takes 82% at E = 64), the tests are resolution-limited, and a fraction
+below 1 at a few pixels is not a proof that a boundary is non-Wada. The honest
+reading is "consistent with weakening Wada-ness at high energy, no sharp
+threshold", not a reproduction of the 3D result. A weakly dissipative
+Henon-Heiles variant, which adds a trapped fourth basin, would be the closer
+analogue and is a natural next experiment.
+
 ## About
 
 Python/Sagemath scripts to make pictures of "Lakes of Wada" sets in the plane and in the 2-torus, using the method described by Yves Coudene in [Pictures of Dynamical Systems, Notices of AMS 53, No 1, pp8-13](http://www.ams.org/notices/200601/fea-coudene.pdf).
@@ -146,6 +188,7 @@ Package layout: `maps` (Anosov map + pluggable perturbations), `classify`
     python3 wada.py canal -n 256 --wada                               # canal construction
     python3 wada.py scatter -n 500 --energy 0.25 --wada --merging     # Henon-Heiles exit basins
     python3 wada.py scatter -n 64 --dim 3 --data hh3d.npz --wada      # 3D energy surface
+    python3 wada.py sweep --energies 0.2,1,4,16 -n 500 --csv sweep.csv # Henon-Heiles energy sweep
 
 * `lakes_of_wada.wadatest`: numerical Wada tests on a label array of **any
   dimension** (2D images, 3D volumes, ...). Labels: `>0` basins, `0` undecided
@@ -166,6 +209,10 @@ Package layout: `maps` (Anosov map + pluggable perturbations), `classify`
   conservation. At E = 0.25 the exit basins come out Wada by both tests, in 2D
   (profile 0.995 at r = 4 px, merging distance 0.8% of the diagonal) and in 3D
   at 48^3 to 64^3 (profile 0.98 at r = 3 voxels).
+* `lakes_of_wada.sweep`: `hh_energy_sweep` runs the Henon-Heiles section at a
+  list of energies (using `scattering.energy_window` for the allowed region and
+  `scattering.uncertainty_fraction` for the uncertainty exponent) and returns one
+  row of diagnostics per energy; `write_csv` saves them.
 * `lakes_of_wada.maverick`: per-pixel *orbit divergence*: the largest distance
   over a late window of iterates between a boundary pixel's orbit and the orbit
   of the nearest settled interior pixel of each basin (a finite-window proxy for
