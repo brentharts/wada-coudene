@@ -144,6 +144,70 @@ def harmonic_degree_sweep(degrees, ratio=1.5, n=500, n_fine=None, r=3, t_max=100
     return rows, pics
 
 
+def radius_slope(sizes, radii):
+    """Least-squares slope of log(radius / size) against log(size): about -1
+    when the needed radius is a fixed number of pixels (it shrinks in physical
+    units, as for a Wada set), 0 when it stalls at a fixed physical length (it
+    does not, as for three sectors meeting at one point)."""
+    x = np.log(np.asarray(sizes, float))
+    y = np.log(np.asarray(radii, float) / np.asarray(sizes, float))
+    return float(np.polyfit(x, y, 1)[0])
+
+
+def harmonic_radius_scaling(degrees, ratio=3.0, sizes=(250, 500, 1000, 2000), t_max=200.0,
+                            percentiles=(50, 90, 99), band_thresholds=(0.4, 0.6),
+                            band_radius_frac=0.016, dt=0.05, progress=None):
+    """For each degree of the harmonic family, the percentiles of the radius
+    needed to see all exits (:func:`wadatest.wada_radius`) at several grid
+    sizes, as a fraction of the grid width, plus the log-log slope per
+    percentile (``slope_p50`` ...).
+
+    The same numbers are also given separately for the dense *mixing band* of
+    the boundary (:func:`wadatest.mixing_band`; window radius
+    ``band_radius_frac * n`` pixels, so it is the same physical size at every
+    resolution; keys ``band{t}_p{q}_frac``, ``band{t}_slope_p{q}``) and for the
+    rest of the boundary (``rest{t}_...``), for each threshold ``t``.  Returns
+    one row per (degree, size); slope columns repeat on every row of a degree."""
+    rows = []
+    for d in degrees:
+        E = ratio * scattering.harmonic_saddle_energy(d)
+        block = []
+        for n in sizes:
+            L = scattering.scattering_picture("harmonic", n=n, energy=E, dt=dt, t_max=t_max,
+                                              degree=d).label.copy()
+            L[L == 0] = -1                     # trapped islands are not exit basins
+            b = wadatest.boundary_mask(L)
+            w = wadatest.wada_radius(L, percentiles, boundary=b)
+            row = {"degree": d, "energy": E, "n": n, "boundary_pixels": w["boundary_pixels"],
+                   "n_basins_seen": w["K"]}
+            for q in percentiles:
+                row[f"p{q}_px"] = w["radius"][q]
+                row[f"p{q}_frac"] = w["radius"][q] / n
+            R = max(2, round(band_radius_frac * n))
+            dens = wadatest.boundary_density(L, R)
+            for t in band_thresholds:
+                band = b & (dens >= t)
+                for name, m in (("band", band), ("rest", b & ~band)):
+                    row[f"{name}{t:g}_pixels"] = int(m.sum())
+                    ww = wadatest.wada_radius(L, percentiles, boundary=m) if m.sum() > 50 else {"radius": {}}
+                    for q in percentiles:
+                        v = ww["radius"].get(q, np.nan)
+                        row[f"{name}{t:g}_p{q}_px"] = v
+                        row[f"{name}{t:g}_p{q}_frac"] = v / n
+            block.append(row)
+        keys = [k for k in block[0] if k.endswith("_px") and "_p" in k and "pixels" not in k]
+        for k in keys:
+            vals = [r[k] for r in block]
+            ok = [i for i, v in enumerate(vals) if np.isfinite(v) and v > 0]
+            sl = radius_slope([sizes[i] for i in ok], [vals[i] for i in ok]) if len(ok) >= 3 else np.nan
+            for r in block:
+                r["slope_" + k[:-3]] = sl
+        rows.extend(block)
+        if progress:
+            progress(block)
+    return rows
+
+
 def write_csv(rows, path):
     keys = list(rows[0])
     with open(path, "w", newline="") as f:

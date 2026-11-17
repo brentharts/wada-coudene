@@ -88,6 +88,58 @@ def basin_profile(label, radii=(1, 2, 4, 8), min_fraction=1e-3, sampling=None):
     return out
 
 
+
+
+def wada_radius(label, percentiles=(50, 90, 99), boundary=None, min_fraction=1e-3,
+                sampling=None):
+    """Percentiles of the *radius needed to see every basin*: for each boundary
+    point, the largest distance (pixels) to the nearest point of any of the K
+    basins.  ``wada_profile`` at radius r is the fraction of boundary points
+    whose value is <= r, so this is the same information without choosing r.
+
+    Why it is useful: for a Wada boundary the needed radius shrinks, in
+    *physical* units (pixels / image width), as the resolution is refined, for
+    every percentile; if it stalls at a positive value the boundary is not Wada
+    at that scale.  Compare the same label array computed at several sizes.
+    Returns ``{"K", "boundary_pixels", "radius": {percentile: pixels}}``."""
+    labs = basin_labels(label, min_fraction)
+    dist = _distance_maps(label, labs, sampling)
+    b = boundary_mask(label) if boundary is None else boundary
+    need = np.max(np.stack([dist[L][b] for L in labs]), axis=0) if b.any() else np.array([])
+    out = {q: float(np.percentile(need, q)) for q in percentiles} if need.size else {}
+    return {"K": len(labs), "boundary_pixels": int(b.sum()), "radius": out}
+
+# --- restricting the test to the mixing band ----------------------------------
+
+def boundary_density(label, radius):
+    """Fraction of points within ``radius`` pixels (square window) that are
+    boundary points.  A smooth boundary crossing the window gives about
+    ``1 / radius``; an intermingled (fractal) one gives much more."""
+    b = boundary_mask(label).astype(float)
+    return np.clip(ndi.uniform_filter(b, size=2 * int(radius) + 1, mode="nearest"), 0.0, 1.0)
+
+
+def mixing_band(label, radius, threshold=0.25):
+    """Boundary points whose neighbourhood (``radius`` px) is at least
+    ``threshold`` boundary.  This selects the intermingled core of the
+    boundary *without* using the number of basins that are nearby, so it does
+    not presuppose the Wada property: a Wada test inside the band is then a
+    real test of the core, not diluted by the smooth two-basin boundaries
+    between large regions.  Returns a boolean array."""
+    return boundary_mask(label) & (boundary_density(label, radius) >= threshold)
+
+
+def band_wada_profile(label, radii=(1, 2, 3, 6), band_radius=8, threshold=0.25,
+                      min_fraction=1e-3, sampling=None):
+    """Wada profile restricted to :func:`mixing_band`.  Returns the
+    :func:`wada_profile` dict plus ``band_fraction`` (band points as a fraction
+    of all boundary points)."""
+    band = mixing_band(label, band_radius, threshold)
+    out = wada_profile(label, radii, boundary=band, min_fraction=min_fraction,
+                       sampling=sampling)
+    out["band_fraction"] = float(band.sum() / max(boundary_mask(label).sum(), 1))
+    return out
+
 # --- merging method -----------------------------------------------------------
 
 def slim_boundary(binary, valid=None):
