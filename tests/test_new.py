@@ -164,3 +164,35 @@ def test_hh_exit_basins_are_wada_2d_and_3d():
 def test_scattering_rejects_closed_energy():
     with pytest.raises(ValueError):
         low.scattering.scattering_picture(n=10, energy=0.1)
+
+
+# --- lake labelling of the torus / plane pictures --------------------------------
+
+def test_torus_and_plane_labels_are_the_lakes_not_the_first_hit_point():
+    """(0,1/2), (1/2,1/2), (1/2,0) form a period-3 cycle, so the lakes are the
+    cyclic colour classes (basins of the cycle points under f^3), not the index of
+    the point an orbit happens to hit first (which is dust at every scale)."""
+    t = low.torus_picture(160)
+    assert np.array_equal(t.label, t.color.astype(int))
+    p = low.plane_picture(160)
+    assert np.array_equal(p.label, p.color.astype(int))
+
+
+def test_torus_lakes_are_wada_and_not_dust():
+    t = low.torus_picture(300)
+    prof = W.wada_profile(t.label, (4,))
+    assert prof["K"] == 4 and prof["profile"][4] > 0.98
+    assert W.merging_test(t.label)["max_d_normalized"] < 0.03
+    # each lake has genuinely solid interior (not interleaved at pixel scale)
+    from scipy import ndimage as ndi
+    for L in (1, 2, 3, 4):
+        assert ndi.binary_erosion(t.label == L, iterations=3).sum() > 500
+
+
+def test_maverick_high_scores_are_long_transients():
+    p = low.torus_picture(200)
+    fld, _ = M.orbit_divergence(p, n_iter=60, tail=20)
+    s = M.maverick_score(fld)
+    hi = M.maverick_mask(s, 0.1)
+    # a pixel can only look 'maverick' if its orbit had not settled before the window
+    assert (p.steps[hi] > 60 - 20).all()
