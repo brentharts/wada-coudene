@@ -120,6 +120,58 @@ def henon_heiles_volume(n, energy, x_range=(-1.2, 1.2), y_range=(-0.7, 1.0),
     return s, valid
 
 
+def energy_window(energy, y_max=1.0):
+    """A natural (y_range, py_range) window for the x = 0 section at this energy:
+    from the left turning point of V(0, y) to ``y_max`` (the saddle), and
+    |p_y| <= sqrt(2 E)."""
+    from scipy.optimize import brentq
+    v = lambda y: _hh_potential(0.0, y)
+    y_min = brentq(lambda y: v(y) - energy, -10.0, 0.0)
+    return (float(y_min), float(y_max)), (-float(np.sqrt(2 * energy)), float(np.sqrt(2 * energy)))
+
+
+def uncertainty_fraction(energy, eps=(1e-4, 3e-4, 1e-3, 3e-3, 1e-2), n_samples=20000,
+                         dt=0.05, t_max=200.0, radius=5.0, seed=0, **ranges):
+    """Uncertainty exponent of the Henon-Heiles exit basins on the x = 0 section.
+
+    Draw ``n_samples`` random initial conditions (y, p_y) at this energy, perturb
+    y by ``eps`` (p_x is recomputed so the energy is unchanged), integrate both and
+    record how often the two exits differ.  f(eps) ~ eps**alpha: alpha = 1 for a
+    smooth boundary, alpha < 1 for a fractal one (boundary dimension 2 - alpha on
+    the section).  Pairs in which either trajectory had not exited by ``t_max``
+    are dropped.  Returns ``{"alpha", "dimension", "f", "n_pairs"}``.
+    """
+    rng = np.random.default_rng(seed)
+    yr, pr = (ranges.get("y_range"), ranges.get("py_range"))
+    if yr is None or pr is None:
+        yr, pr = energy_window(energy)
+    y = rng.uniform(*yr, n_samples)
+    py = rng.uniform(*pr, n_samples)
+
+    def state(yv):
+        px2 = 2 * (energy - _hh_potential(0.0, yv)) - py ** 2
+        ok = px2 >= 0
+        return np.stack([np.zeros_like(yv), yv, np.sqrt(np.where(ok, px2, 0.0)), py], axis=1), ok
+
+    sysm = henon_heiles(radius)
+    s0, ok0 = state(y)
+    lab0, _, _ = integrate_exits(sysm, s0[ok0], dt, t_max)
+    base = np.zeros(n_samples, dtype=int)
+    base[ok0] = lab0
+    f, npairs = {}, {}
+    for e in eps:
+        s1, ok1 = state(y + e)
+        ok = ok0 & ok1
+        lab1, _, _ = integrate_exits(sysm, s1[ok], dt, t_max)
+        a, b = base[ok], lab1
+        good = (a > 0) & (b > 0)
+        f[e] = float(np.mean(a[good] != b[good])) if good.any() else float("nan")
+        npairs[e] = int(good.sum())
+    pts = [(np.log(e), np.log(v)) for e, v in f.items() if v > 0 and v < 0.5]
+    alpha = float(np.polyfit(*np.array(pts).T, 1)[0]) if len(pts) >= 2 else float("nan")
+    return {"alpha": alpha, "dimension": 2 - alpha, "f": f, "n_pairs": npairs}
+
+
 def scattering_picture(system="henon-heiles", n=300, energy=0.25, dim=2, dt=0.05,
                        t_max=60.0, radius=5.0, **ranges) -> Picture:
     """Exit-basin picture.  ``dim=2``: the x = 0 section in (y, p_y);

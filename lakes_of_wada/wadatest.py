@@ -140,3 +140,4 @@ def merging_test(label, min_fraction=1e-3, sampling=None):
     return {"K": len(labs_i), "pairs": pairs, "max_d": mx, "min_d": mn,
             "ratio": (mx - mn) / mn if mn > 0 else float("inf"),
             "max_d_normalized": mx / diag, "diagonal": diag}
+
