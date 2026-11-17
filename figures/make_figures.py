@@ -160,6 +160,95 @@ def fig_profiles():
     return curves
 
 
+STRIP_ENERGIES = (0.2, 0.25, 1.0, 4.0, 16.0, 64.0)
+
+
+def _read_sweep():
+    path = HERE / "energy_sweep.csv"
+    if not path.exists():       # ~10 minutes; the committed CSV is normally used
+        rows, _ = low.sweep.hh_energy_sweep(
+            [0.19, 0.2, 0.22, 0.25, 0.3, 0.4, 0.6, 1, 1.5, 2, 3, 4, 6, 8, 12, 16, 32, 64],
+            n=500, n_fine=1000)
+        low.sweep.write_csv(rows, path)
+    with open(path) as f:
+        return [{k: float(v) for k, v in r.items()} for r in csv.DictReader(f)]
+
+
+def fig_energy_strip():
+    from matplotlib.colors import ListedColormap
+    exit_cols = ["#66c2a5", "#a6d854", "#b3b3b3"]   # same Set2 hues as henon_heiles.png
+    cm = ListedColormap(["white", "#4d4d4d"] + exit_cols)   # -1 forbidden, 0 trapped, 1-3 exits
+    rows = {r["energy"]: r for r in _read_sweep()}
+    fig, axs = plt.subplots(1, len(STRIP_ENERGIES), figsize=(14, 2.9), dpi=140, facecolor="white")
+    for ax, E in zip(axs, STRIP_ENERGIES):
+        yr, pr = low.scattering.energy_window(E)
+        tm = 200.0 if E < 0.3 else 100.0
+        p = low.scattering.scattering_picture(n=360, energy=E, t_max=tm, y_range=yr, py_range=pr)
+        ax.imshow(p.label + 1, cmap=cm, vmin=0, vmax=4, interpolation="nearest")
+        r = rows.get(E)
+        ttl = f"E = {E:g}" + (f"   α = {r['alpha']:.2f}" if r else "")
+        ax.set_title(ttl, fontsize=10, color=INK)
+        ax.set_xticks([]); ax.set_yticks([])
+        for sp in ax.spines.values():
+            sp.set_visible(False)
+    fig.tight_layout()
+    fig.savefig(HERE / "energy_strip.png", facecolor="white")
+    plt.close(fig)
+    print("wrote energy_strip.png")
+
+
+def fig_energy_sweep():
+    rows = _read_sweep()
+    E = np.array([r["energy"] for r in rows])
+    col = lambda k: np.array([r.get(k, np.nan) for r in rows])
+    blue, orange = "#2a78d6", "#eb6834"
+    fig, axs = plt.subplots(1, 3, figsize=(14, 4.3), dpi=140, facecolor="white")
+
+    def style(ax, ylabel, title):
+        ax.set_xscale("log")
+        ax.axvline(1 / 6, color="#8a8984", lw=1, ls=":")
+        ax.set_xlabel("energy E (escape energy 1/6 dotted)", color=INK2, fontsize=9)
+        ax.set_ylabel(ylabel, color=INK2, fontsize=9)
+        ax.set_title(title, fontsize=10.5, color=INK, loc="left")
+        ax.grid(True, color=GRID, lw=0.8); ax.set_axisbelow(True)
+        for s_ in ("top", "right"):
+            ax.spines[s_].set_visible(False)
+        for s_ in ("left", "bottom"):
+            ax.spines[s_].set_color("#c3c2b7")
+        ax.tick_params(colors=INK2, labelsize=8.5)
+
+    ax = axs[0]
+    ax.plot(E, col("alpha"), color=blue, lw=2, marker="o", ms=5, mec="white", mew=0.8)
+    ax.set_ylim(0, 1.02)
+    style(ax, "uncertainty exponent α", "Boundary fractality (α = 1: smooth)")
+    ax.legend(["α from perturbing initial conditions"], frameon=False, fontsize=8.5, loc="lower right")
+
+    ax = axs[1]
+    ax.plot(E, col("wada_r3"), color=blue, lw=2, marker="o", ms=5, mec="white", mew=0.8,
+            label="all boundary pixels, 500 px")
+    ax.plot(E, col("wada_r3_fine"), color=blue, lw=2, ls=(0, (4, 2)), marker="s", ms=5, mec="white",
+            mew=0.8, label="all boundary pixels, 1000 px")
+    ax.plot(E, col("min_basin_r3"), color=orange, lw=2, marker="o", ms=5, mec="white", mew=0.8,
+            label="least-Wada exit basin, 500 px")
+    ax.plot(E, col("min_basin_r3_fine"), color=orange, lw=2, ls=(0, (4, 2)), marker="s", ms=5,
+            mec="white", mew=0.8, label="least-Wada exit basin, 1000 px")
+    ax.set_ylim(0.8, 1.005)
+    style(ax, "fraction seeing all 3 exits within 3 px", "Wada profile at r = 3 px, two resolutions")
+    ax.legend(frameon=False, fontsize=8, loc="lower left")
+
+    ax = axs[2]
+    for k, c, m, nm in ((1, "#66c2a5", "o", "exit 1 (90°)"), (2, "#a6d854", "s", "exit 2 (210°)"),
+                        (3, "#b3b3b3", "^", "exit 3 (330°)")):
+        ax.plot(E, col(f"exit{k}_frac"), color=c, lw=2, marker=m, ms=6, mec="#4d4d4d", mew=0.6, label=nm)
+    ax.set_ylim(0, 1)
+    style(ax, "fraction of the section", "Share of each exit basin (x=0, px≥0 section)")
+    ax.legend(frameon=False, fontsize=8.5, loc="upper left")
+    fig.tight_layout()
+    fig.savefig(HERE / "energy_sweep.png", facecolor="white")
+    plt.close(fig)
+    print("wrote energy_sweep.png")
+
+
 JOBS = {
     "torus": lambda: fig_image("torus", "plasma", "torus.png"),
     "plane": lambda: fig_image("plane", "turbo", "plane.png", crop=True),
@@ -168,6 +257,8 @@ JOBS = {
     "canal": lambda: fig_image("canal", "Set2", "canals.png"),
     "maverick": fig_maverick,
     "profiles": fig_profiles,
+    "energy_strip": fig_energy_strip,
+    "energy_sweep": fig_energy_sweep,
 }
 
 if __name__ == "__main__":
