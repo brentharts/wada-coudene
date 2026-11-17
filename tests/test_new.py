@@ -237,3 +237,70 @@ def test_sweep_csv_roundtrip(tmp_path):
     import csv
     got = list(csv.DictReader(open(path)))
     assert float(got[0]["energy"]) == 0.5 and "alpha" in got[0]
+
+
+# --- harmonic-polynomial family ---------------------------------------------------
+
+def test_harmonic_degree3_is_henon_heiles():
+    sc = low.scattering
+    h, g = sc.henon_heiles(), sc.harmonic_polynomial(3)
+    rng = np.random.default_rng(3)
+    s = rng.normal(size=(500, 4)) * 3
+    assert np.abs(h.rhs(s) - g.rhs(s)).max() < 1e-10
+    assert np.abs(h.energy(s) - g.energy(s)).max() < 1e-10
+    assert (h.exit_label(s * 3) == g.exit_label(s * 3)).all()
+    assert sc.harmonic_saddle_energy(3) == pytest.approx(sc.HH_ESCAPE_ENERGY)
+
+
+@pytest.mark.parametrize("degree", [4, 5, 6, 8])
+def test_harmonic_channels_sit_at_the_saddles(degree):
+    sc = low.scattering
+    sysm = sc.harmonic_polynomial(degree)
+    for k in range(1, degree + 1):
+        th = (-np.pi / 2 + 2 * np.pi * k) / degree
+        # the saddle of height 1/2 - 1/n is at r = 1 along theta_k, and the potential
+        # falls off beyond it
+        x, y = np.cos(th), np.sin(th)
+        v = lambda r: sc._harm_potential(degree, r * x, r * y)
+        assert v(1.0) == pytest.approx(sc.harmonic_saddle_energy(degree))
+        assert v(1.2) < v(1.0) and v(0.8) < v(1.0)
+        assert sysm.exit_label(np.array([[6 * x, 6 * y, 0, 0]]))[0] == k
+    assert sysm.exit_label(np.array([[0.1, 0.1, 0, 0]]))[0] == 0   # inside
+
+
+@pytest.mark.parametrize("degree", [4, 5])
+def test_harmonic_conserves_energy_and_uses_all_channels(degree):
+    sc = low.scattering
+    E = 1.5 * sc.harmonic_saddle_energy(degree)
+    y0, valid = sc.harmonic_section(degree, 60, E)
+    sysm = sc.harmonic_polynomial(degree)
+    s = y0[valid]
+    assert np.abs(sysm.energy(s) - E).max() < 1e-12
+    lab, _, _ = sc.integrate_exits(sysm, s, dt=0.02, t_max=60)
+    assert set(np.unique(lab)) >= set(range(1, degree + 1))
+    # RK4 energy drift over a short, still-bounded stretch of the motion (the final
+    # plunge down a steep channel is not a fair test of a fixed step)
+    lab2, _, fin = sc.integrate_exits(sysm, s, dt=0.01, t_max=1.0)
+    inside = lab2 == 0
+    assert inside.sum() > 100
+    assert np.abs(sysm.energy(fin[inside]) - E).max() < 1e-5
+
+
+def test_harmonic_picture_guards():
+    sc = low.scattering
+    with pytest.raises(ValueError):
+        sc.scattering_picture("harmonic", n=10, energy=0.2, degree=4)   # below 1/4
+    with pytest.raises(ValueError):
+        sc.scattering_picture("harmonic", n=10, energy=0.5, degree=4, dim=3)
+    with pytest.raises(ValueError):
+        sc.harmonic_polynomial(2)
+
+
+def test_degree_sweep_smoke():
+    rows, _ = low.sweep.harmonic_degree_sweep([3, 4], n=90, alpha_samples=600, t_max=100)
+    assert [r["degree"] for r in rows] == [3, 4]
+    assert rows[0]["energy"] == pytest.approx(0.25)
+    for r in rows:
+        assert r["n_basins_seen"] == r["degree"]
+        assert 0 < r["alpha"] <= 1.2
+        assert 0.0 <= r["wada_r3_exits"] <= 1.0
