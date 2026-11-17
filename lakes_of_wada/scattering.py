@@ -89,6 +89,79 @@ def henon_heiles(radius=5.0) -> System:
     return System("henon-heiles", rhs, exit_label, energy)
 
 
+# --- Harmonic-polynomial family -------------------------------------------------
+# V_n = r^2/2 + Im(z^n)/n,  z = x + i y.  n = 3 is Henon-Heiles exactly
+# (Im z^3 / 3 = x^2 y - y^3/3).  Along each of the n directions
+# theta_k = (-pi/2 + 2 pi k)/n, k = 1..n, the potential has a saddle of height
+# 1/2 - 1/n at r = 1 and falls off beyond it, so for E above that the system has
+# n exit channels.  These are the "harmonic polynomial potentials" of the pp-wave
+# scattering problem (see README, Rossetto et al.).
+
+def harmonic_saddle_energy(degree):
+    """Energy above which the ``degree`` channels of the family are open."""
+    return 0.5 - 1.0 / degree
+
+
+def _harm_potential(degree, x, y):
+    return 0.5 * (x * x + y * y) + np.imag((x + 1j * y) ** degree) / degree
+
+
+def harmonic_polynomial(degree, radius=5.0) -> System:
+    """``degree`` exit channels centred at theta_k = (-pi/2 + 2 pi k)/degree,
+    labelled k = 1..degree; exit when r > ``radius``."""
+    if degree < 3:
+        raise ValueError("degree must be >= 3")
+    n = int(degree)
+
+    def rhs(s):
+        x, y, px, py = s[:, 0], s[:, 1], s[:, 2], s[:, 3]
+        w = (x + 1j * y) ** (n - 1)
+        return np.stack([px, py, -(x + np.imag(w)), -(y + np.real(w))], axis=1)
+
+    def exit_label(s):
+        x, y = s[:, 0], s[:, 1]
+        out = x * x + y * y > radius * radius
+        theta = np.arctan2(y, x)
+        theta1 = (-np.pi / 2 + 2 * np.pi) / n
+        sector = np.floor(((theta - theta1 + np.pi / n) % (2 * np.pi)) / (2 * np.pi / n)).astype(int) + 1
+        return np.where(out, np.clip(sector, 1, n), 0)
+
+    def energy(s):
+        return 0.5 * (s[:, 2] ** 2 + s[:, 3] ** 2) + _harm_potential(n, s[:, 0], s[:, 1])
+
+    return System(f"harmonic-{n}", rhs, exit_label, energy)
+
+
+def harmonic_window(degree, energy, y_cap=1.0):
+    """(y_range, py_range) of the x = 0 section: the interval around y = 0 where
+    V(0, y) <= E, clipped to |y| <= ``y_cap`` (the saddle radius), and
+    |p_y| <= sqrt(2E)."""
+    grid = np.linspace(-y_cap, y_cap, 4001)
+    ok = _harm_potential(degree, 0.0, grid) <= energy
+    mid = len(grid) // 2
+    lo = mid
+    while lo > 0 and ok[lo - 1]:
+        lo -= 1
+    hi = mid
+    while hi < len(grid) - 1 and ok[hi + 1]:
+        hi += 1
+    r = float(np.sqrt(2 * energy))
+    return (float(grid[lo]), float(grid[hi])), (-r, r)
+
+
+def harmonic_section(degree, n, energy, y_range=None, py_range=None):
+    """x = 0, p_x >= 0 section of the family, same layout as
+    :func:`henon_heiles_section` (columns = y, rows = p_y with the top row largest)."""
+    yr, pr = harmonic_window(degree, energy)
+    y = np.linspace(*(y_range or yr), n)
+    py = np.linspace(*(py_range or pr), n)[::-1]
+    Y, PY = np.meshgrid(y, py)
+    px2 = 2 * (energy - _harm_potential(degree, 0.0, Y)) - PY ** 2
+    valid = px2 >= 0
+    st = np.stack([np.zeros_like(Y), Y, np.sqrt(np.where(valid, px2, 0.0)), PY], axis=-1)
+    return st, valid
+
+
 def henon_heiles_section(n, energy, y_range=(-0.6, 1.0), py_range=(-0.75, 0.75)):
     """Initial conditions on the surface x = 0, px >= 0 at the given energy.
 
@@ -131,8 +204,9 @@ def energy_window(energy, y_max=1.0):
 
 
 def uncertainty_fraction(energy, eps=(1e-4, 3e-4, 1e-3, 3e-3, 1e-2), n_samples=20000,
-                         dt=0.05, t_max=200.0, radius=5.0, seed=0, **ranges):
-    """Uncertainty exponent of the Henon-Heiles exit basins on the x = 0 section.
+                         dt=0.05, t_max=200.0, radius=5.0, seed=0, degree=None, **ranges):
+    """Uncertainty exponent of the Henon-Heiles exit basins on the x = 0 section
+    (or of the harmonic-polynomial family of the given ``degree``).
 
     Draw ``n_samples`` random initial conditions (y, p_y) at this energy, perturb
     y by ``eps`` (p_x is recomputed so the energy is unchanged), integrate both and
@@ -144,16 +218,17 @@ def uncertainty_fraction(energy, eps=(1e-4, 3e-4, 1e-3, 3e-3, 1e-2), n_samples=2
     rng = np.random.default_rng(seed)
     yr, pr = (ranges.get("y_range"), ranges.get("py_range"))
     if yr is None or pr is None:
-        yr, pr = energy_window(energy)
+        yr, pr = energy_window(energy) if degree is None else harmonic_window(degree, energy)
+    pot = _hh_potential if degree is None else (lambda x, yv: _harm_potential(degree, x, yv))
     y = rng.uniform(*yr, n_samples)
     py = rng.uniform(*pr, n_samples)
 
     def state(yv):
-        px2 = 2 * (energy - _hh_potential(0.0, yv)) - py ** 2
+        px2 = 2 * (energy - pot(0.0, yv)) - py ** 2
         ok = px2 >= 0
         return np.stack([np.zeros_like(yv), yv, np.sqrt(np.where(ok, px2, 0.0)), py], axis=1), ok
 
-    sysm = henon_heiles(radius)
+    sysm = henon_heiles(radius) if degree is None else harmonic_polynomial(degree, radius)
     s0, ok0 = state(y)
     lab0, _, _ = integrate_exits(sysm, s0[ok0], dt, t_max)
     base = np.zeros(n_samples, dtype=int)
@@ -173,18 +248,23 @@ def uncertainty_fraction(energy, eps=(1e-4, 3e-4, 1e-3, 3e-3, 1e-2), n_samples=2
 
 
 def scattering_picture(system="henon-heiles", n=300, energy=0.25, dim=2, dt=0.05,
-                       t_max=60.0, radius=5.0, **ranges) -> Picture:
+                       t_max=60.0, radius=5.0, degree=3, **ranges) -> Picture:
     """Exit-basin picture.  ``dim=2``: the x = 0 section in (y, p_y);
     ``dim=3``: the whole energy surface.  ``label`` is 1..3 for the exit used,
     0 if the trajectory had not exited by ``t_max``, and -1 for points not
     allowed at this energy."""
-    if system != "henon-heiles":
+    if system not in ("henon-heiles", "harmonic"):
         raise ValueError(f"unknown system {system!r}")
-    if energy <= HH_ESCAPE_ENERGY:
-        raise ValueError("Henon-Heiles is closed (no exits) for E <= 1/6")
-    sysm = henon_heiles(radius)
+    harmonic = system == "harmonic"
+    esc = harmonic_saddle_energy(degree) if harmonic else HH_ESCAPE_ENERGY
+    if energy <= esc:
+        raise ValueError(f"{system} is closed (no exits) for E <= {esc:g}")
+    if harmonic and dim != 2:
+        raise ValueError("the harmonic family is implemented for the 2D section only")
+    sysm = harmonic_polynomial(degree, radius) if harmonic else henon_heiles(radius)
     if dim == 2:
-        y0, valid = henon_heiles_section(n, energy, **ranges)
+        y0, valid = (harmonic_section(degree, n, energy, **ranges) if harmonic
+                     else henon_heiles_section(n, energy, **ranges))
     elif dim == 3:
         y0, valid = henon_heiles_volume(n, energy, **ranges)
     else:
@@ -195,5 +275,5 @@ def scattering_picture(system="henon-heiles", n=300, energy=0.25, dim=2, dt=0.05
     label[valid] = lab
     steps[valid] = st
     return Picture(label.astype(float), label, steps,
-                   dict(kind="scatter", system=system, n=n, energy=energy, dim=dim,
+                   dict(kind="scatter", system=system, degree=degree if harmonic else 3, n=n, energy=energy, dim=dim,
                         dt=dt, t_max=t_max, radius=radius))
