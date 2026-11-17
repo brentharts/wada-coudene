@@ -25,6 +25,10 @@ def torus_picture(n=100, amplitude=2.2, spread=0.23, islands=4, max_iter=500) ->
     else:
         res = classify.orbit_to_targets(f, pts, max_iter=max_iter)
         color = classify.color_cyclic(res)
+        # (0, 1/2), (1/2, 1/2), (1/2, 0) form a period-3 *cycle*, not three fixed
+        # points: the lakes are the basins of the three cycle points under f^3, i.e.
+        # the cyclic colour class, not "which point was hit first"
+        res.label = color.astype(int)
     return Picture(color, res.label, res.steps,
                    dict(kind="torus", n=n, amplitude=amplitude, spread=spread, islands=islands),
                    f=f, points=pts, distance=maps.torus_distance)
@@ -37,6 +41,7 @@ def plane_picture(n=100, amplitude1=2.4, spread1=0.5, amplitude2=2.3, spread2=0.
     res = classify.orbit_to_targets(f, pts, max_iter=max_iter)
     color = classify.color_cyclic(res)
     color[zero] = 1.0
+    res.label = color.astype(int)       # lakes = cyclic colour classes (see torus_picture)
     return Picture(color, res.label, res.steps,
                    dict(kind="plane", n=n, amplitude1=amplitude1, spread1=spread1,
                         amplitude2=amplitude2, spread2=spread2, radius=radius, theta=theta),
