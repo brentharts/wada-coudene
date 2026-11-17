@@ -249,6 +249,93 @@ def fig_energy_sweep():
     print("wrote energy_sweep.png")
 
 
+DEGREES = (3, 4, 5, 6, 7, 8)
+
+
+def _read_degree(ratio):
+    path = HERE / f"degree_sweep_r{ratio:g}.csv"
+    if not path.exists():       # several minutes; the committed CSV is normally used
+        rows, _ = low.sweep.harmonic_degree_sweep(DEGREES, ratio=ratio, n=500, n_fine=1000,
+                                                  t_max=400.0)
+        low.sweep.write_csv(rows, path)
+    with open(path) as f:
+        return [{k: float(v) for k, v in r.items()} for r in csv.DictReader(f)]
+
+
+def fig_degree_strip():
+    import matplotlib as mpl
+    cols = [mpl.colormaps["Set2"](i) for i in range(8)]
+    rows = {int(r["degree"]): r for r in _read_degree(3)}
+    fig, axs = plt.subplots(1, len(DEGREES), figsize=(14, 2.9), dpi=140, facecolor="white")
+    for ax, d in zip(axs, DEGREES):
+        E = 3 * low.scattering.harmonic_saddle_energy(d)
+        p = low.scattering.scattering_picture("harmonic", n=360, energy=E, t_max=200.0, degree=d)
+        img = np.ones(p.label.shape + (3,))
+        for k in range(1, d + 1):
+            img[p.label == k] = cols[k - 1][:3]
+        img[p.label == 0] = (0.3, 0.3, 0.3)
+        ax.imshow(img, interpolation="nearest")
+        ax.set_title(f"n = {d} exits   E = {E:.3g}\nWada(3 px) = {rows[d]['wada_r3_exits']:.2f}",
+                     fontsize=9.5, color=INK)
+        ax.set_xticks([]); ax.set_yticks([])
+        for sp in ax.spines.values():
+            sp.set_visible(False)
+    fig.tight_layout()
+    fig.savefig(HERE / "degree_strip.png", facecolor="white")
+    plt.close(fig)
+    print("wrote degree_strip.png")
+
+
+def fig_degree_sweep():
+    blue, orange = "#2a78d6", "#eb6834"
+    data = {1.5: _read_degree(1.5), 3.0: _read_degree(3)}
+    style_of = {1.5: (blue, "o"), 3.0: (orange, "s")}
+    fig, axs = plt.subplots(1, 3, figsize=(14, 4.3), dpi=140, facecolor="white")
+
+    def style(ax, ylabel, title):
+        ax.set_xticks(DEGREES)
+        ax.set_xlabel("degree n = number of exit channels", color=INK2, fontsize=9)
+        ax.set_ylabel(ylabel, color=INK2, fontsize=9)
+        ax.set_title(title, fontsize=10.5, color=INK, loc="left")
+        ax.grid(True, color=GRID, lw=0.8); ax.set_axisbelow(True)
+        for s_ in ("top", "right"):
+            ax.spines[s_].set_visible(False)
+        for s_ in ("left", "bottom"):
+            ax.spines[s_].set_color("#c3c2b7")
+        ax.tick_params(colors=INK2, labelsize=8.5)
+
+    def line(ax, key, ratio, ls="-", label=None):
+        rows = data[ratio]
+        c, m = style_of[ratio]
+        ax.plot([r["degree"] for r in rows], [r.get(key, np.nan) for r in rows], color=c, lw=2, ls=ls,
+                marker=m, ms=5.5, mec="white", mew=0.8, label=label)
+
+    ax = axs[0]
+    for ratio in data:
+        line(ax, "wada_r3_exits", ratio, label=f"E = {ratio:g} x E_saddle, 500 px")
+        line(ax, "wada_r3_exits_fine", ratio, ls=(0, (4, 2)), label=f"E = {ratio:g} x E_saddle, 1000 px")
+    ax.set_ylim(0, 1.02)
+    style(ax, "fraction seeing all n exits within 3 px", "Wada profile vs number of exits")
+    ax.legend(frameon=False, fontsize=8, loc="lower left")
+
+    ax = axs[1]
+    for ratio in data:
+        line(ax, "alpha", ratio, label=f"E = {ratio:g} x E_saddle")
+    ax.set_ylim(0, 1.0)
+    style(ax, "uncertainty exponent α", "Boundary fractality (α = 1: smooth)")
+    ax.legend(frameon=False, fontsize=8.5, loc="upper right")
+
+    ax = axs[2]
+    for ratio in data:
+        line(ax, "undecided_frac", ratio, label=f"E = {ratio:g} x E_saddle")
+    style(ax, "fraction still trapped at t_max", "Regular islands (never exit)")
+    ax.legend(frameon=False, fontsize=8.5, loc="upper left")
+    fig.tight_layout()
+    fig.savefig(HERE / "degree_sweep.png", facecolor="white")
+    plt.close(fig)
+    print("wrote degree_sweep.png")
+
+
 JOBS = {
     "torus": lambda: fig_image("torus", "plasma", "torus.png"),
     "plane": lambda: fig_image("plane", "turbo", "plane.png", crop=True),
@@ -259,6 +346,8 @@ JOBS = {
     "profiles": fig_profiles,
     "energy_strip": fig_energy_strip,
     "energy_sweep": fig_energy_sweep,
+    "degree_strip": fig_degree_strip,
+    "degree_sweep": fig_degree_sweep,
 }
 
 if __name__ == "__main__":
