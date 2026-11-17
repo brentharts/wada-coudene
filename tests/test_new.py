@@ -196,3 +196,44 @@ def test_maverick_high_scores_are_long_transients():
     hi = M.maverick_mask(s, 0.1)
     # a pixel can only look 'maverick' if its orbit had not settled before the window
     assert (p.steps[hi] > 60 - 20).all()
+
+
+# --- energy sweep -----------------------------------------------------------------
+
+def test_energy_window_contains_the_allowed_region():
+    S = low.scattering
+    for E in (0.2, 1.0, 5.0):
+        (y0, y1), (p0, p1) = S.energy_window(E)
+        assert y0 < 0 < y1 and p0 == -p1
+        # the left turning point sits exactly on the energy surface
+        assert abs(S._hh_potential(0.0, y0) - E) < 1e-8
+
+
+def test_uncertainty_exponent_distinguishes_fractal_from_smooth():
+    S = low.scattering
+    fractal = S.uncertainty_fraction(0.25, n_samples=3000)
+    smoother = S.uncertainty_fraction(4.0, n_samples=3000)
+    assert fractal["alpha"] < 0.4 < smoother["alpha"] < 1.0
+    assert abs(fractal["dimension"] - (2 - fractal["alpha"])) < 1e-12
+    # f(eps) grows with eps for a boundary of positive dimension
+    f = fractal["f"]
+    assert f[1e-4] < f[1e-2]
+
+
+def test_energy_sweep_columns_and_trend_near_threshold():
+    rows, pics = low.sweep.hh_energy_sweep([0.19, 0.3], n=60, alpha_samples=1500,
+                                           t_max=60, keep=(0.3,))
+    assert [r["energy"] for r in rows] == [0.19, 0.3]
+    assert {"undecided_frac", "wada_r3", "min_basin_r3", "merging_pct_diag", "alpha"} <= set(rows[0])
+    # just above the escape energy far more trajectories are still trapped
+    assert rows[0]["undecided_frac"] > rows[1]["undecided_frac"]
+    assert 0.3 in pics and pics[0.3].label.shape == (60, 60)
+
+
+def test_sweep_csv_roundtrip(tmp_path):
+    rows, _ = low.sweep.hh_energy_sweep([0.5], n=40, alpha_samples=800, t_max=40)
+    path = tmp_path / "s.csv"
+    low.sweep.write_csv(rows, path)
+    import csv
+    got = list(csv.DictReader(open(path)))
+    assert float(got[0]["energy"]) == 0.5 and "alpha" in got[0]
