@@ -87,6 +87,9 @@ def build_parser():
                     help="instead of an energy sweep: comma-separated degrees of the harmonic "
                          "family, each at energy --ratio * (1/2 - 1/n)")
     sw.add_argument("--ratio", type=float, default=1.5)
+    sw.add_argument("--sizes", default=None,
+                    help="with --degrees: measure the needed-radius scaling at these grid sizes "
+                         "(e.g. 250,500,1000,2000) instead of the profile sweep")
     sw.add_argument("--t-max", type=float, default=400.0, help="(degree sweep) integration time")
     sw.add_argument("-n", "--size", type=int, default=500)
     sw.add_argument("--fine", type=int, default=None,
@@ -103,6 +106,20 @@ def build_parser():
 
 def main(argv=None):
     a = build_parser().parse_args(argv)
+    if a.cmd == "sweep" and a.degrees and a.sizes:
+        ds = [int(x) for x in a.degrees.split(",")]
+        sizes = tuple(int(x) for x in a.sizes.split(","))
+
+        def show(block):
+            r0 = block[0]
+            print(f"n={r0['degree']} E={r0['energy']:.4g} slope p90: all={r0['slope_p90']:.2f} "
+                  f"band0.6={r0['slope_band0.6_p90']:.2f} rest0.6={r0['slope_rest0.6_p90']:.2f}  "
+                  + "  ".join(f"[{r['n']}px: p90={r['p90_frac']:.4f}]" for r in block), flush=True)
+        rows = low.sweep.harmonic_radius_scaling(ds, a.ratio, sizes, t_max=a.t_max, progress=show)
+        if a.csv:
+            low.sweep.write_csv(rows, a.csv)
+            print(f"Saved {a.csv}")
+        return
     if a.cmd == "sweep" and a.degrees:
         ds = [int(x) for x in a.degrees.split(",")]
         fmt = "n={degree:<2d} E={energy:<6.4g} undecided={undecided_frac:6.3f} seen={n_basins_seen} " \

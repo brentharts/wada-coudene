@@ -181,26 +181,70 @@ three basins (colours). The strip shows the section at 3 x E_saddle.
   n = 7, 0.07-0.11 for n = 8 (the ranges are the two energies). At 6 px most of
   them recover (0.75-0.99 for n <= 6 at 3 x E_saddle), so the exits are close
   to every boundary point, but not within the 3 px scale.
-* **It is not a resolution effect.** The values at 500 px and 1000 px agree
-  within a few hundredths, whereas a smooth two-basin boundary would lose its
-  value as the grid is refined. The reading is that a fixed fraction of the
-  boundary is a scale-invariant mixing core where all n exits intermingle, and
-  the rest is smooth boundary between two large basins. That fraction decreases
-  as channels are added.
+* **Correction: that fall is mostly a resolution effect, not a loss of
+  Wada-ness.** The first version of this section read the agreement between
+  500 px and 1000 px as evidence of a fixed "mixing core" with smooth boundaries
+  elsewhere. That reading was wrong: a self-similar boundary gives the same
+  fraction at a given number of *pixels* at every resolution, so the agreement
+  does not distinguish the cases. At a fixed *physical* radius the fraction
+  keeps rising with resolution (n = 6, radius 0.8% of the width: 0.47 at 500 px,
+  0.91 at 1000 px). More exits need a larger pixel radius to be seen, so the
+  3 px number falls with n. Figure 10 measures this properly.
 
-What this does and does not show: this measures the fraction of *all* boundary
-pixels in one 2D section of one energy surface, which includes the smooth
-two-basin boundaries between the big regions. It does not test whether the
-mixing core by itself is Wada, so it neither confirms nor contradicts the
-robustness reported by Rossetto et al. (whose full text I could not read). Some
-details are unexplained and I have not chased them: degree 7 is much lower at
-1.5 x E_saddle (with 13% regular islands), and the trapped regular islands (5-13% for n = 4 to 7
-at 1.5 x E_saddle, under 0.2% at 3 x E_saddle) are excluded from these numbers
-(`*_exits` columns; the all-points versions are in the CSVs). Pixel values near
-the boundary also depend on the integration step (about 86-98% of the section
-agrees between dt = 0.05 and a much finer step), so statistics, not individual
-pixels, are what to trust. A first follow-up would be to restrict the test to
-the mixing band.
+Other details of this section that remain unexplained: degree 7 is much lower
+at 1.5 x E_saddle (with 13% regular islands); the trapped regular islands (5-13%
+for n = 4 to 7 at 1.5 x E_saddle, under 0.2% at 3 x E_saddle) are excluded from
+the numbers (`*_exits` columns; the all-points versions are in the CSVs); and
+pixel values near the boundary depend on the integration step (about 86-98% of
+the section agrees between dt = 0.05 and a much finer step), so statistics, not
+individual pixels, are what to trust.
+
+### 10. Does the needed radius shrink? (`radius_scaling.png`)
+
+![Needed radius versus resolution](figures/radius_scaling.png)
+
+Instead of asking what fraction of the boundary sees all n exits within a chosen
+radius, this asks, for each boundary pixel, how far you have to go to see all n
+exits (`wadatest.wada_radius`), and how that distance changes as the grid is
+refined from 250 to 2000 px. For a Wada boundary the distance, as a fraction of
+the width, should keep shrinking in proportion to 1/n_px (log-log slope -1);
+for a boundary where some basin stays at a fixed distance it stalls (slope 0).
+The two reference curves are the same measurement on a three-sector partition
+(slope 0) and on Newton's method for z^3 - 1 (slope -1). The left and middle
+panels split the boundary into a dense *mixing band* (pixels whose window of
+1.6% of the width is at least 60% boundary) and the rest, which is what I had
+intended by "restricting to the mixing band" (`wadatest.mixing_band`). Data:
+[`figures/radius_scaling.csv`](figures/radius_scaling.csv); runs are at 3 x
+E_saddle.
+
+* **Degrees 3 to 7 behave like Wada sets over this range.** For the whole
+  boundary the 90th-percentile slope is -1.00, -1.00, -0.95, -1.06, -1.01 for
+  n = 3, 4, 5, 6, 7. The band and the rest are both close to -1 as well (the
+  rest -1.1 to -1.4). At 2000 px the needed radius is 0.1% of the width for n = 3
+  and a few tenths of a percent for n = 5 to 7.
+* **Degree 8 splits.** The dense band still converges (slope -0.86 at density
+  0.6, -0.72 at 0.4) while the rest of the boundary stalls (-0.21 and -0.20):
+  its 90th-percentile radius stays near 8-12% of the width. The whole-boundary
+  slope is -0.29. The pixels responsible are on the borders of the large basins,
+  and the basin that is far away is nearly always one of the small ones. This is
+  the dilution I had suspected, but it appears only at n = 8, not at n = 4 to 7.
+* **How much to trust this.** The slopes are measured over a factor of 8 in
+  resolution at one energy. The band is small for some degrees (empty for n = 3
+  at density 0.6, and 1,400 pixels for n = 7 at 2000 px), so those band slopes
+  are noisy (the n = 6 band slope of -1.4 and the n = 7 rest slope of -1.4 are
+  steeper than the expected -1 for that reason, probably). The band depends on
+  its parameters: at the first density threshold I tried, 0.25, it contained
+  97-100% of the boundary and so separated nothing. A stalling slope at n = 8
+  could also mean the needed resolution is not yet reached rather than that the
+  boundary is not Wada; the data do not decide between those. A slope near -1
+  does not prove Wada-ness either, since a boundary can look like this down to
+  the finest scale tested and then stop mixing.
+
+What this means for the "stitched at a point" idea: with the boundary measure
+used here, three, four, five, six and seven basins all meet at essentially every
+boundary point, down to the pixel scale, and there is no sign that the number
+three is special. At eight exits a part of the boundary stops satisfying that.
+That is a statement about a family of 2D scattering potentials, nothing more.
 
 ## About
 
@@ -238,6 +282,7 @@ Package layout: `maps` (Anosov map + pluggable perturbations), `classify`
     python3 wada.py sweep --energies 0.2,1,4,16 -n 500 --csv sweep.csv # Henon-Heiles energy sweep
     python3 wada.py scatter --system harmonic --degree 5 --energy 0.9 -n 500   # 5 exit channels
     python3 wada.py sweep --degrees 3,4,5,6 --ratio 3 -n 500 --csv deg.csv      # vs number of exits
+    python3 wada.py sweep --degrees 3,8 --ratio 3 --sizes 250,500,1000,2000 --t-max 200 --csv rs.csv  # needed-radius scaling
 
 * `lakes_of_wada.wadatest`: numerical Wada tests on a label array of **any
   dimension** (2D images, 3D volumes, ...). Labels: `>0` basins, `0` undecided
@@ -263,7 +308,12 @@ Package layout: `maps` (Anosov map + pluggable perturbations), `classify`
   `scattering.uncertainty_fraction` for the uncertainty exponent) and returns one
   row of diagnostics per energy; `write_csv` saves them. `harmonic_degree_sweep`
   does the same across the harmonic-polynomial family (`scattering.harmonic_polynomial`),
-  which has `degree` exit channels and contains Henon-Heiles as degree 3.
+  which has `degree` exit channels and contains Henon-Heiles as degree 3;
+  `harmonic_radius_scaling` measures how the radius needed to see every exit
+  shrinks with the grid size (`radius_slope` gives the log-log slope).
+* `wadatest.wada_radius` (radius percentiles needed to see all basins),
+  `wadatest.mixing_band` / `band_wada_profile` (restrict a test to the dense
+  part of the boundary; the density threshold matters, see figure 10).
 * `lakes_of_wada.maverick`: per-pixel *orbit divergence*: the largest distance
   over a late window of iterates between a boundary pixel's orbit and the orbit
   of the nearest settled interior pixel of each basin (a finite-window proxy for
