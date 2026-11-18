@@ -69,3 +69,30 @@ def test_labels_inside_the_smooth_wedges_do_not_depend_on_the_step():
     bm = np.array([0.0, 0.0, 0.0, -0.35, 0.0])
     for h0 in (0.01, 0.005):
         assert M.exit_basins(bp, bm, h0=h0).tolist() == [1, 1, 1, 3, 1]
+
+
+def test_persistent_rule_is_step_independent():
+    rng = np.random.default_rng(5)
+    P = rng.uniform(-1, 1, size=(900, 2))
+    _, _, V = M.turnaround_state(P[:, 0], P[:, 1])
+    P = P[V < 0][:300]
+    a = M.exit_basins_persistent(P[:, 0], P[:, 1], h0=0.1)
+    b = M.exit_basins_persistent(P[:, 0], P[:, 1], h0=0.05)
+    m = (a > 0) & (b > 0)
+    assert m.sum() > 60
+    assert np.array_equal(a[m], b[m])
+
+
+def test_exit_words_are_reduced_words_and_agree_with_the_persistent_labels():
+    rng = np.random.default_rng(1)
+    P = rng.uniform(-1, 1, size=(900, 2))
+    _, _, V = M.turnaround_state(P[:, 0], P[:, 1])
+    P = P[V < 0][:300]
+    lab, W = M.exit_words(P[:, 0], P[:, 1])
+    assert np.array_equal(lab, M.exit_basins_persistent(P[:, 0], P[:, 1]))
+    L = (W > 0).sum(axis=1)
+    reps = sum(int(np.sum(w[1:l] == w[:l - 1])) for w, l in zip(W, L) if l > 1)
+    assert reps == 0
+    m = (lab > 0) & (L >= 1)
+    last = np.array([w[l - 1] for w, l in zip(W[m], L[m])])
+    assert np.mean(last == lab[m]) > 0.7
