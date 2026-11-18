@@ -119,7 +119,7 @@ are the parts that touch established physics, and where the idea departs from it
   connection. This is a restatement of the observation in different words, not
   yet a mechanism that predicts anything the standard picture does not.
 
-### 2.3 Six 1D spaces and one-directional time (speculation)
+### 2.3 Six 1D spaces (speculation)
 
 The proposal is that 3D space is composed of separate half-lines, +X, -X, +Y, -Y,
 +Z, -Z, stitched together at points, and that time is a single +T.
@@ -137,11 +137,7 @@ The proposal is that 3D space is composed of separate half-lines, +X, -X, +Y, -Y
   Hermitian conjugate of the +X link from the neighbouring site, so +X and -X are
   not independent in that construction; the proposal would have to treat them as
   independent, which is a real difference.
-* **Constraint: time.** The fundamental laws are essentially symmetric under
-  reversing time, apart from small weak-interaction effects, and the arrow of time
-  is usually attributed to the low-entropy initial condition. A model with only
-  +T would have to be consistent with the observed T-symmetry of the laws, or
-  explain why they are not symmetric.
+* 
 
 ---
 
