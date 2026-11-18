@@ -145,3 +145,125 @@ def mixmaster_picture(n=200, half=1.2, **kw) -> Picture:
     lab = exit_basins(BP, BM, **kw)
     return Picture(lab.astype(float), lab, np.zeros(lab.shape, dtype=int),
                    dict(kind="mixmaster", n=n, half=half, **kw))
+
+
+# ---------------------------------------------------------------------------------------------- persistent exit rule
+
+def exit_basins_persistent(bp, bm, h0=0.1, tmax=300.0, tmin=2.0, kappa=1e-3, p_exit=0.95):
+    """Exit axis with a persistent exit rule, integrated with the 8th order Dormand-Prince coefficients of scipy.
+
+    ``exit_basins`` stops at the first sampled step where |V| < kappa sum x'^2, p_i > p_exit and S < 0.  Brief near-Kasner passes
+    that satisfy this for a short stretch of BKL time are then caught or missed depending on the step, so labels change with the
+    step (see MIXMASTER.md, section 2c).  Here the condition must hold continuously for ``tmin`` of BKL time; the label is the axis
+    of p at that moment.  Labels: 0 = no persistent exit before BKL time ``tmax``, -1 = invalid initial state (V >= 0).
+    For tmin = 1 or 5 and h0 from 0.1 to 0.0125 the labels of 1000 states did not change at all (tests/test_mixmaster.py)."""
+    from scipy.integrate._ivp.dop853_coefficients import A as _A, B as _B
+    A8, B8 = _A[:12, :12], _B
+    shape = np.shape(bp)
+    x0, v0, V0 = turnaround_state(np.ravel(bp), np.ravel(bm))
+    label = np.where(V0 < 0, 0, -1)
+    act = np.where(V0 < 0)[0]
+    x, v = x0[act].copy(), v0[act].copy()
+    out = np.zeros(act.size, dtype=int)
+    T = np.zeros(act.size)
+    t0 = np.full(act.size, np.nan)
+    alive = np.arange(act.size)
+    for _ in range(int(2 * tmax / h0) + 10):
+        if alive.size == 0:
+            break
+        xa, va = x[alive], v[alive]
+        h = (h0 / (1.0 + np.max(np.abs(va), axis=1)))[:, None]
+        KX, KV = [], []
+        for s in range(12):
+            if s == 0:
+                dx, dv = va, force(xa)
+            else:
+                ax = sum(A8[s, j] * KX[j] for j in range(s))
+                av = sum(A8[s, j] * KV[j] for j in range(s))
+                dx, dv = va + h * av, force(xa + h * ax)
+            KX.append(dx)
+            KV.append(dv)
+        xa = xa + h * sum(B8[j] * KX[j] for j in range(12))
+        va = va + h * sum(B8[j] * KV[j] for j in range(12))
+        x[alive], v[alive] = xa, va
+        T[alive] += h[:, 0]
+        S = va.sum(axis=1)
+        sq = np.sum(va ** 2, axis=1)
+        p = va / np.where(S == 0, 1.0, S)[:, None]
+        kap = np.abs(potential(xa)) / np.maximum(sq, 1e-300)
+        cond = (kap < kappa) & (p.max(axis=1) > p_exit) & (S < 0)
+        ts = np.where(cond & np.isnan(t0[alive]), T[alive], t0[alive])
+        ts = np.where(cond, ts, np.nan)
+        t0[alive] = ts
+        ex = cond & ((T[alive] - ts) >= tmin)
+        out[alive[ex]] = np.argmax(p[ex], axis=1) + 1
+        alive = alive[~ex & (T[alive] < tmax)]
+    label[act] = out
+    return label.reshape(shape)
+
+
+def exit_words(bp, bm, h0=0.1, tmax=300.0, tmin=2.0, kappa=1e-3, p_exit=0.95, lmax=300):
+    """Persistent-rule exit label (as ``exit_basins_persistent``) plus the wall word of each trajectory.
+
+    A bounce off wall i (the growth of a_i turning into decay) is the moment x_i' goes from positive to negative; the word is the
+    sequence of these i = 1, 2, 3 in time order.  Returns ``label`` (0 = no
+    persistent exit before ``tmax``, -1 = invalid) and ``words`` of shape (..., lmax), uint8, 0 for padding.  In the sharp-wall
+    limit two consecutive letters are never equal; tests/test_mixmaster.py counts how often that holds here."""
+    from scipy.integrate._ivp.dop853_coefficients import A as _A, B as _B
+    A8, B8 = _A[:12, :12], _B
+    shape = np.shape(bp)
+    x0, v0, V0 = turnaround_state(np.ravel(bp), np.ravel(bm))
+    label = np.where(V0 < 0, 0, -1)
+    act = np.where(V0 < 0)[0]
+    n = act.size
+    x, v = x0[act].copy(), v0[act].copy()
+    out = np.zeros(n, dtype=int)
+    T = np.zeros(n)
+    t0 = np.full(n, np.nan)
+    pos = v > 0
+    nl = np.zeros(n, dtype=int)
+    words = np.zeros((n, lmax), dtype=np.uint8)
+    alive = np.arange(n)
+    for _ in range(int(2 * tmax / h0) + 10):
+        if alive.size == 0:
+            break
+        xa, va = x[alive], v[alive]
+        h = (h0 / (1.0 + np.max(np.abs(va), axis=1)))[:, None]
+        KX, KV = [], []
+        for s in range(12):
+            if s == 0:
+                dx, dv = va, force(xa)
+            else:
+                ax = sum(A8[s, j] * KX[j] for j in range(s))
+                av = sum(A8[s, j] * KV[j] for j in range(s))
+                dx, dv = va + h * av, force(xa + h * ax)
+            KX.append(dx)
+            KV.append(dv)
+        xa = xa + h * sum(B8[j] * KX[j] for j in range(12))
+        va = va + h * sum(B8[j] * KV[j] for j in range(12))
+        x[alive], v[alive] = xa, va
+        T[alive] += h[:, 0]
+        S = va.sum(axis=1)
+        sq = np.sum(va ** 2, axis=1)
+        p = va / np.where(S == 0, 1.0, S)[:, None]
+        kap = np.abs(potential(xa)) / np.maximum(sq, 1e-300)
+        # bounces: x_i' from positive to negative
+        cross = pos[alive] & (va <= 0)
+        for ax_ in range(3):
+            ci = alive[cross[:, ax_]]
+            okc = nl[ci] < lmax
+            words[ci[okc], nl[ci[okc]]] = ax_ + 1
+            nl[ci] += 1
+        pos[alive] = va > 0
+        # persistent exit
+        cond = (kap < kappa) & (p.max(axis=1) > p_exit) & (S < 0)
+        ts = np.where(cond & np.isnan(t0[alive]), T[alive], t0[alive])
+        ts = np.where(cond, ts, np.nan)
+        t0[alive] = ts
+        ex = cond & ((T[alive] - ts) >= tmin)
+        out[alive[ex]] = np.argmax(p[ex], axis=1) + 1
+        alive = alive[~ex & (T[alive] < tmax)]
+    label[act] = out
+    W = np.zeros((label.size, lmax), dtype=np.uint8)
+    W[act] = words
+    return label.reshape(shape), W.reshape(shape + (lmax,))
