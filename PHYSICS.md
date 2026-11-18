@@ -242,7 +242,16 @@ These are ideas to examine, ordered from the most concrete. None has support yet
    *final states* whose basins could be mapped and tested for Wada-ness with this
    toolkit. That would be a concrete computation, and it would show only whether
    classical gauge-Higgs dynamics produces Wada basins. It would not address the
-   gap.
+   gap. *Update:* the pure x^2 y^2 system (no Higgs term) was also run with an
+   operational exit, the first passage to a radius R, in [`YANGMILLS.md`](YANGMILLS.md):
+   the basins are intermingled, the uncertainty dimension grows with R (1.57, 1.85,
+   1.91 for R = 2, 3, 4), and the Wada diagnostic cannot separate Wada from noise at
+   R >= 3. This is a definition of an exit, not an escape. A toy with true final
+   states (the valleys capped by a Higgs-like ring, four degenerate minima, with
+   friction) is in section 5 of the same file: smooth basins at strong friction,
+   uncertainty dimension 1.45, 1.79 and 1.97 at friction 0.1, 0.05 and 0.02, and an
+   outer boundary whose Wada profile reaches 1 at weak friction. The model is a
+   toy chosen here, not a derived gauge-Higgs truncation.
 3. **Confinement as a geometric statement (the proposal).** If colour-singlet
    composites are the only finite-energy states because quarks are junctions of
    three one-dimensional spaces, a gap could appear as the energy cost of
@@ -286,7 +295,8 @@ These are ideas to examine, ordered from the most concrete. None has support yet
 * A weakly dissipative Henon-Heiles variant with a trapped fourth basin, as the
   closer analogue of Fernandez et al.
 * Gauge-Higgs homogeneous Yang-Mills with degenerate vacua, mapped for Wada basins
-  (section 4.3, item 2).
+  (section 4.3, item 2). Done in toy form (`YANGMILLS.md`, sections 1 to 5): the pure x^2 y^2 system
+  with a first-passage exit, and a damped Higgs-capped version with four wells. Not done: a derived Higgs sector.
 * Anything from the owner's own work on the mass gap, once available.
 
 ---

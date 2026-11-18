@@ -338,6 +338,12 @@ Package layout: `maps` (Anosov map + pluggable perturbations), `classify`
   `analyse_persistent.py`, `analyse_words.py`; discussion with all caveats in [`MIXMASTER.md`](MIXMASTER.md),
   connections to the Hopf fibration in [HopfFibration](https://github.com/brentharts/HopfFibration).
 
+* `lakes_of_wada.yangmills`: homogeneous SU(2) Yang-Mills mechanics, H = (p^2)/2 + x^2 y^2 / 2, with exits defined as first passage to a
+  radius R (the four valleys do not give a true escape); velocity Verlet on the section x = 0. Results, with the strong dependence on R and
+  the limits of the Wada test, in [`YANGMILLS.md`](YANGMILLS.md); analysis `figures/analyse_yangmills.py`. `higgs_basins` / `higgs_picture` add a damped
+  gauge-Higgs toy (the valleys capped by a Higgs-like ring, four wells) whose basins go from smooth to Wada-like as the friction falls
+  (`YANGMILLS.md` section 5; `figures/analyse_higgs.py`, `figures/make_higgs_figure.py`).
+
 ## Related work
 
 * D. Martí-Pete, L. Rempe, J. Waterman, *Eremenko's conjecture, wandering Lakes
