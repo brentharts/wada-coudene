@@ -254,8 +254,6 @@ These are ideas to examine, ordered from the most concrete. None has support yet
   stated axioms, together with the gap. Heuristic or numerical evidence, including
   anything computed in this repository, does not meet that standard.
 
-*Placeholder: the repository owner has other work on this topic, to be added.*
-
 ---
 
 ## 5. Checklist of what could be done in this repository
