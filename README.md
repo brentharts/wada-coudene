@@ -246,6 +246,9 @@ boundary point, down to the pixel scale, and there is no sign that the number
 three is special. At eight exits a part of the boundary stops satisfying that.
 That is a statement about a family of 2D scattering potentials, nothing more.
 
+Possible physical interpretations, and where the numerical results do and do not
+support them, are discussed in [PHYSICS.md](PHYSICS.md).
+
 ## About
 
 Python/Sagemath scripts to make pictures of "Lakes of Wada" sets in the plane and in the 2-torus, using the method described by Yves Coudene in [Pictures of Dynamical Systems, Notices of AMS 53, No 1, pp8-13](http://www.ams.org/notices/200601/fea-coudene.pdf).
