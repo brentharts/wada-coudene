@@ -74,10 +74,66 @@ higher-order or adaptive integrator.
 
 What this does not exclude: islands smaller than a pixel of the zoom (0.0008 in beta), or a power-law tail slower than the budgets reach. The statement is that none is visible at these scales and the survival law is exponential.
 
+### 2c. The exit rule depends on the step; a persistent rule does not (`exit_basins_persistent`)
+
+**Counted, and a correction to section 2b.** With an 8th order integrator (Dormand-Prince coefficients, step 0.2 down to 0.003 of BKL time) the labels of `exit_basins` still change by about 9 to 12 % between
+step halvings, so integrator order was not the limit. In 600 states, 43 changed label between steps 0.0125 and 0.00625, and in 93 % of those the finer step found an exit at tau of about 1 to 3 where the coarser one
+found it at tau of 7 to 117: the rule 'first sampled step with |V| < kappa sum x'^2, p_i > 0.95, S < 0' catches brief near-Kasner passes only if the sampling hits them. So the step dependence of section 2b is mostly a
+property of the rule, not of the integrator error, and the dimension bounds of 2b should be read with that in mind.
+
+The persistent rule requires the condition to hold for 2 units of BKL time (`tmin`). On 1000 states the labels are identical for steps 0.1, 0.05, 0.025 and 0.0125, for tmin = 1 and 5. The price: only 43 % of states have a
+persistent exit before tau = 300 (38 % for tmin = 5); the rest are inside long Kasner epochs or between bounces and are labelled 0.
+
+Uncertainty fraction f(eps) with this rule (6000 states, pairs with both ends decided; 8th order, steps 0.1 and 0.05 agree to 3 decimals):
+
+| eps | 0.02 | 0.01 | 0.005 | 0.002 | 0.001 | 0.0005 |
+|---|---|---|---|---|---|---|
+| f | 0.630 | 0.547 | 0.542 | 0.373 | 0.144 | 0.055 |
+
+This is **not a power law**: f saturates near 0.55 to 0.63 for eps of 0.005 and above (the perturbation is then larger than the basins) and falls by a factor 2.6 per halving at the smallest eps, a slope of about 1.4, which would
+mean 'D < 1' and is impossible for a boundary. The likely reason is selection: states near a boundary have long exit times, so they are the ones the rule labels 0 and removes from the sample, and that depletes exactly the
+pairs that would disagree. A fit of the whole range gives D = 1.56 and of eps >= 0.002 gives D = 1.79, with the same values for tmin = 5 within 0.02; neither is a dimension. **We still cannot give a boundary dimension.** What is
+now established is that the labels are step independent under this rule; the missing piece is a dimension estimate that does not drop undecided states, for example by counting a state as uncertain when either end is
+undecided, or by a box-counting of the boundary pixels on a grid with a larger tau budget. Not done.
+
+### 2d. Uncertainty fraction with undecided states kept (`figures/analyse_persistent.py`)
+
+**Counted.** Persistent rule (tmin = 2), 3000 states, step 0.1, three budgets in BKL time. 'differ' counts a pair as uncertain when the labels differ with 'undecided' as a fourth label (undecided with undecided agrees);
+'either0' is the literal version, uncertain when the labels differ or at least one end is undecided. U is the fraction of states with no persistent exit.
+
+| tau budget | U | f(eps) 'differ' at eps = 0.02, 0.01, 0.005, 0.002, 0.001, 0.0005 | alpha, eps <= 0.002 | D |
+|---|---|---|---|---|
+| 300 | 0.573 | 0.572, 0.567, 0.546, 0.482, 0.397, 0.275 | 0.41 | 1.59 |
+| 1000 | 0.443 | 0.681, 0.662, 0.626, 0.591, 0.515, 0.407 | 0.27 | 1.73 |
+| 3000 | 0.349 | 0.722, 0.701, 0.678, 0.645, 0.574, 0.481 | 0.21 | 1.79 |
+
+The undecided fraction falls roughly as budget^(-0.21) between 300 and 3000, a slow power law in tau (the exponential law of 2b is in the number of epochs, which grow in tau). Every f(eps) rises with the budget, the
+local slope at the smallest eps falls (0.53, 0.34, 0.26) and the fitted D rises, 1.59 to 1.73 to 1.79. The 'either0' version gives alpha near 0.13 to 0.15 (D about 1.86) at all three budgets, but it carries a floor from the
+undecided states (every pair with an undecided end is uncertain for every eps), which flattens the curve and biases D upward; its agreement with 1.86 should not be taken as a measurement.
+
+**What this supports and what it does not.** The trend is monotone and the estimate moves towards the 1.86 of Cornish and Levin, but neither f(eps) nor D has stopped moving with the budget, the slope is still steepening at
+the smallest eps, and the fit range is one decade. No converged dimension; the statement is only that the persistent-rule estimate rose from 1.59 to 1.79 as the budget grew tenfold. Larger budgets cost roughly in proportion
+(3000: 325 s for 3000 states), and a power-law U means the undecided set shrinks slowly.
+
+### 2e. Reduced-word coding of the exit basins (`exit_words`, `figures/analyse_words.py`)
+
+A trajectory's bounces form a word in the walls 1, 2, 3 (a bounce off wall i is x_i' going from + to -); consecutive letters always differ (0 repeats in 36 741 consecutive pairs), so it is a reduced word of the (inf,inf,inf) reflection group of
+`brentharts/HopfFibration` `HOPF_BKL.md`. The persistent exit rule of 2c is used, so the labels do not depend on the step. Counted on a 160 x 160 grid of (beta_+, beta_-) on [-1,1]^2: 9302 valid states, 4020 decided (43 %), median word length 7.
+
+1. **The exit axis is the last letter in 86.7 % of the decided states** (3486 of 4020). The exceptions are mostly the letter before the last (for example, last two letters 1, 2 with exit 1: 57 states).
+2. **The label is carried by the tail, not by the head.** H(label) = 1.585 bits. Given the last k letters it falls to 0.70 (k = 1), 0.66 (3), 0.52 (5), 0.38 (6); given the first k letters it stays near the maximum: 1.58, 1.54 (3), 1.46 (5), 1.40 (6).
+   Plug-in entropies from groups of at least 20 states, biased low by roughly 0.07 bits, and the groups that are large enough get fewer as k grows (4020 states at k <= 3, 2822 at k = 6 for the tail).
+3. **The cylinders of the first bounces are smooth wedges, and each contains all three exits.** The first k bounces cut the plane into 3 * 2^(k-1) cylinders (12 at k = 3; panel 2 of `figures/mixmaster_words.png`: sectors around the symmetric point, with the stripes along
+   the Taub lines). Counting cylinders with at least 30 states in which each of the three exits has at least 10 %: 3 of 3 (k = 1), 6 of 6 (2), 12 of 12 (3), 22 of 24 (4), 26 of 36 (5), 12 of 38 (6), 8 of 20 (7).
+   At k >= 5 only the larger cylinders have 30 states, so the drop is a sample-size effect as much as a property of the system; a larger grid (`python3 figures/analyse_words.py 320`, which takes several times as long) is needed to tell.
+
+What this says: the first few bounces, which decide which wedge a state lies in, say almost nothing about the exit, and each wedge down to the fourth bounce meets all three basins. That is the symbolic form of the intermingling of 2a. What it does not say:
+the Wada property in the plane needs the boundary of each basin to equal the common boundary, which this coding does not test; and 57 % of the valid states have no persistent exit before tau = 300 and are absent from these counts.
+
 ## 3. What this says and does not say
 
 - **Says.** For this slice and this exit rule the three outcomes (which axis becomes the collapsing Hopf fibre of the final pancake) intermingle at every scale we resolved, with a profile that
-  reaches 1 within about 8 pixels. The picture is robust in structure to the exit thresholds and the step size; individual pixels near boundaries are not.
+  reaches 1 within about 8 pixels. The picture is robust in structure to the exit thresholds and the step size; individual pixels near boundaries are not (section 2c: the first-hit rule itself depends on the step).
 - **The Hopf/Berger line is not where the mixing is.** The Taub solutions (b = c, the Berger spheres) are an invariant manifold; they stay biaxial (the equations preserve b = c) and exit through their own axis, and the
   fractal region starts at a positive distance from them. In the Hopf repository's language: the exact Berger slices are inside a basin, and the chaos lives where all three axes differ.
 - **Does not say.** That the true Mixmaster (without our exit rule) has Wada exit sets; that our slice is the one used in the literature; anything about the quantum or the physical (not
@@ -86,5 +142,5 @@ What this does not exclude: islands smaller than a pixel of the zoom (0.0008 in 
 ## 4. Next
 
 1. Add the energy-like slice of Cornish and Levin once their paper text is available, and compare labels.
-2. A converged boundary dimension: an adaptive higher-order integrator (the RK4 error is the limit in section 2b), then repeat the uncertainty exponent over more than one decade of eps.
+2. A converged boundary dimension: sections 2c and 2d remove the step dependence and keep undecided states, and the estimate rises with the budget (1.59, 1.73, 1.79) without converging; the next step is a budget of 10^4 or more, with eps down to 10^-4.
 3. The Hopf side of this picture is in `brentharts/HopfFibration` (`HOPF_BIANCHI.md`): the three exits are the three left-invariant Hopf fibrations of S^3 = SU(2).

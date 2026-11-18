@@ -330,6 +330,14 @@ Package layout: `maps` (Anosov map + pluggable perturbations), `classify`
   width). Resolution-limited: at n = 512 the Wada profile is 0.61 at r = 16 px,
   0.90 at r = 32, 1.00 at r = 64; larger n goes deeper.
 
+* `lakes_of_wada.mixmaster`: the diagonal vacuum Bianchi IX (Mixmaster) model in BKL time, exit basins of the
+  maximum-expansion slice of the (beta_+, beta_-) plane. `exit_basins` stops at the first sampled step that looks like
+  an exit (step dependent, see `MIXMASTER.md` 2c); `exit_basins_persistent` requires the exit condition to hold for a
+  stretch of BKL time (labels independent of the step, 8th order integrator); `exit_words` also returns each
+  trajectory's wall-bounce word. Figures and analysis: `figures/make_mixmaster.py`, `analyse_mixmaster.py`,
+  `analyse_persistent.py`, `analyse_words.py`; discussion with all caveats in [`MIXMASTER.md`](MIXMASTER.md),
+  connections to the Hopf fibration in [HopfFibration](https://github.com/brentharts/HopfFibration).
+
 ## Related work
 
 * D. Martí-Pete, L. Rempe, J. Waterman, *Eremenko's conjecture, wandering Lakes

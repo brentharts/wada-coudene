@@ -50,6 +50,25 @@ behave like Wada boundaries down to the pixel scale (the radius needed to see al
 exits shrinks in proportion to 1/resolution), and at eight channels part of the
 boundary stops doing so. This is a statement about this family of 2D potentials.
 
+### Mixmaster (Bianchi IX): exit basins of the early universe (our own numerical results)
+
+The diagonal vacuum Bianchi IX model has three exits: the final state in which one axis collapses (a pancake). Cornish and Levin ([gr-qc/9605029](https://arxiv.org/abs/gr-qc/9605029), [gr-qc/9612066](https://arxiv.org/abs/gr-qc/9612066)) used fractal, coordinate-independent methods and chaotic scattering to show the model is chaotic; the exit rule below is ours, not theirs, so the numbers are not a test of theirs. `lakes_of_wada.mixmaster` integrates x_i'' = (q_j - q_k)^2 - q_i^2 in BKL time from the
+maximum-expansion slice of the (beta_+, beta_-) plane and applies the Wada tools of this repository; the full account, with every caveat, is in [`MIXMASTER.md`](MIXMASTER.md).
+
+* **Wada profile and needed radius.** The three exit basins intermingle at every scale we resolved: the profile reaches 1 within about 8 pixels. This is a statement about this slice and this exit rule.
+* **The exit rule matters.** The first-hit rule `exit_basins` depends on the step (section 2c of `MIXMASTER.md`): finer steps catch brief near-Kasner passes. `exit_basins_persistent` requires the exit condition to hold for
+  a stretch of BKL time and its labels did not change with step (0.1 down to 0.0125 and an 8th order integrator). Only 43 % of states have such an exit before tau = 300.
+* **Boundary dimension: not converged.** With the persistent rule and undecided states kept, the fitted dimension rises from 1.59 to 1.73 to 1.79 as the tau budget grows from 300 to 1000 to 3000 and has not stopped moving
+  (section 2d). The earlier uncertainty-exponent bounds (section 2b) are affected by the rule's step dependence.
+* **Stability islands: none seen.** The number of Kasner epochs before exit is exponentially distributed; states without exit are in long Kasner epochs, not trapped (section 2).
+* **Words.** The sequence of wall bounces is a reduced word in a hyperbolic reflection group (the walls bound an ideal triangle, with the symmetry walls the (2,3,infinity) triangle of PGL(2,Z); the cusps are the three
+  exits: [`HOPF_BKL.md`](https://github.com/brentharts/HopfFibration/blob/main/HOPF_BKL.md) in the HopfFibration repository). The exit axis is the last letter in 87 % of the decided states, and the first bounces carry
+  almost no information about the exit (section 2e).
+* **Hopf side.** The three exits are the three left-invariant Hopf fibrations of S^3 = SU(2); vacuum momenta are forced to commute with the metric, so the phase space is Mixmaster x SO(3) and the Wada property
+  lifts by a product ([`HOPF_BIANCHI.md`](https://github.com/brentharts/HopfFibration/blob/main/HOPF_BIANCHI.md)).
+
+What none of this says: that the true Mixmaster model (without our exit rule) has Wada exit sets, or anything about the quantum or the full inhomogeneous problem.
+
 ### Possible next experiment (not done)
 
 The Majumdar-Papapetrou binary is a natural next system for the scattering
@@ -259,6 +278,11 @@ These are ideas to examine, ordered from the most concrete. None has support yet
 ## 5. Checklist of what could be done in this repository
 
 * Majumdar-Papapetrou binary shadow in the `scattering` module (section 1).
+* Mixmaster: a converged boundary dimension (persistent rule, tau budget of 10^4 or more, eps down to 10^-4;
+  `figures/analyse_persistent.py`), and a larger grid for the word-cylinder counts (`figures/analyse_words.py 320`).
+  Done so far: exit basins, Wada profile, persistent rule, words (section 1, `MIXMASTER.md`).
+* Mixmaster with a source that carries angular momentum (a rotating fluid), where the momentum constraint no longer
+  forces the data to be a rotated diagonal Mixmaster point (`HOPF_BIANCHI.md`, section 3b).
 * A weakly dissipative Henon-Heiles variant with a trapped fourth basin, as the
   closer analogue of Fernandez et al.
 * Gauge-Higgs homogeneous Yang-Mills with degenerate vacua, mapped for Wada basins
@@ -269,6 +293,11 @@ These are ideas to examine, ordered from the most concrete. None has support yet
 
 ## References
 
+* N. J. Cornish, J. J. Levin, *The mixmaster universe is chaotic*, Phys. Rev. Lett. 78, 998 (1997),
+  [arXiv:gr-qc/9605029](https://arxiv.org/abs/gr-qc/9605029); *The mixmaster universe: a chaotic Farey tale*,
+  [arXiv:gr-qc/9612066](https://arxiv.org/abs/gr-qc/9612066); *The mixmaster universe is unambiguously chaotic* (conference
+  review), [arXiv:gr-qc/9709037](https://arxiv.org/abs/gr-qc/9709037). Checked by search for titles and numbers only; the 1.86 dimension and
+  the pocket exit rule quoted in `MIXMASTER.md` come from my earlier reading and were not re-checked here.
 * A. Daza, J. O. Shipley, S. R. Dolan, M. A. F. Sanjuan, *Wada structures in a
   binary black hole system*, Phys. Rev. D 98, 084050 (2018),
   [arXiv:1807.10741](https://arxiv.org/abs/1807.10741).
