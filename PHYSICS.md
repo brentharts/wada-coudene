@@ -1,18 +1,5 @@
 # Physics connections
 
-This file collects possible links between the Lakes-of-Wada toolkit in this
-repository and physics. It mixes three kinds of statement, and each section says
-which it is using:
-
-* **Established**: published results, with a reference.
-* **Analogy**: a structural resemblance that might suggest something, but that
-  has no dynamical derivation behind it.
-* **Speculation**: an idea of the repository owner, or a possibility I raised,
-  with no evidence for it yet. Where I know of evidence against it, it is stated.
-
-Nothing here is a result of this repository's code unless it says so. The
-numerical results the code does give are in [README.md](README.md) (figures 4,
-8, 9 and 10).
 
 ---
 
