@@ -39,3 +39,17 @@ def test_neighbour_window_partition_tables_are_not_wada():
         rows = [r for r in csv.reader(open(fig / f"spectre_window_partition_N3_c{c}.csv")) if r and r[0] not in ("r", "probe_pieces")]
         p3 = [float(r[6]) for r in rows]
         assert len(p3) == 4 and all(a < b for a, b in zip(p3, p3[1:])) and max(p3) < 0.25
+
+
+def test_phason_flip_exponent_close_to_two_minus_seam_dimension():
+    """Gaussian displacement of the internal point: the exit fraction of Z_0(O) scales like delta^(2 - D), D = 1.1110 (to about 0.05 at this resolution)."""
+    from scipy import ndimage as ndi
+    pts, kid = SW.points("O", 0, 6)
+    lo, hi = pts.min(0), pts.max(0); c = 0.5 * (lo + hi); h = 0.5 * float((hi - lo).max()) + 0.6
+    lab, box, px = SW.label_image(pts, kid, 900, box=(c[0] - h, c[0] + h, c[1] - h, c[1] + h), reach=1.5)
+    inw = lab >= 0
+    ds = np.array([0.02, 0.03, 0.045, 0.07])
+    f = [1 - ndi.gaussian_filter(inw.astype(float), d / px, mode="constant")[inw].mean() for d in ds]
+    alpha = np.polyfit(np.log(ds), np.log(f), 1)[0]
+    D = np.log(5 + 2 * np.sqrt(6)) / np.log(4 + np.sqrt(15))
+    assert abs(alpha - (2 - D)) < 0.06

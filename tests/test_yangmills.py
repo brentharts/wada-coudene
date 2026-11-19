@@ -173,3 +173,21 @@ def test_three_variable_reduces_to_two_and_is_symmetric():
     b = Y.exit_basins3(Yg, P, -0.05, -0.02, R=2.0, dt=0.004, t_max=40.0)
     swz = {0: 0, -1: -1, 1: 1, 2: 2, 3: 3, 4: 4, 5: 6, 6: 5}
     assert np.mean(np.vectorize(swz.get)(a) == b) > 0.999            # (z, pz) -> -(z, pz) exchanges +z and -z
+
+
+def test_exit_labels3_matches_exit_basins3_and_is_hexagon_equivariant():
+    """General 3D exit function = exit_basins3 on x = 0 starts; the plane x+y+z=0 map is equivariant under the 60-degree rotation (labels permute along HEX_ORDER)."""
+    rng = np.random.default_rng(1)
+    y = rng.uniform(-1, 1, 60); z = rng.uniform(-0.2, 0.2, 60); py = rng.uniform(-0.5, 0.5, 60); pz = rng.uniform(-0.2, 0.2, 60)
+    px = np.sqrt(2.0 - py ** 2 - pz ** 2 - 0.5 * y * y * z * z)
+    a = Y.exit_basins3(y, py, z, pz, R=2.0, dt=0.004, t_max=60)
+    b = Y.exit_labels3(np.stack([np.zeros(60), y, z], 1), np.stack([px, py, pz], 1), R=2.0, dt=0.004, t_max=60)
+    assert np.mean(a == b) > 0.99
+    assert sorted(Y.HEX_ORDER) == [1, 2, 3, 4, 5, 6]
+    assert np.allclose(sorted(Y.HEX_ANGLES.values()), [30, 90, 150, 210, 270, 330])
+    th = rng.uniform(0, 2 * np.pi, 200)
+    l0 = Y.exit_plane_rest(np.cos(th), np.sin(th), R=1.15, dt=0.005, t_max=100)
+    l1 = Y.exit_plane_rest(np.cos(th + np.pi / 3), np.sin(th + np.pi / 3), R=1.15, dt=0.005, t_max=100)
+    nxt = {Y.HEX_ORDER[i]: Y.HEX_ORDER[(i + 1) % 6] for i in range(6)}
+    dec = (l0 > 0) & (l1 > 0)
+    assert dec.mean() > 0.95 and np.mean(np.array([nxt[v] for v in l0[dec]]) == l1[dec]) > 0.98
