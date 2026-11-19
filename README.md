@@ -342,7 +342,12 @@ Package layout: `maps` (Anosov map + pluggable perturbations), `classify`
   radius R (the four valleys do not give a true escape); velocity Verlet on the section x = 0. Results, with the strong dependence on R and
   the limits of the Wada test, in [`YANGMILLS.md`](YANGMILLS.md); analysis `figures/analyse_yangmills.py`. `higgs_basins` / `higgs_picture` add a damped
   gauge-Higgs toy (the valleys capped by a Higgs-like ring, four wells) whose basins go from smooth to Wada-like as the friction falls
-  (`YANGMILLS.md` section 5; `figures/analyse_higgs.py`, `figures/make_higgs_figure.py`).
+  (`YANGMILLS.md` section 5; `figures/analyse_higgs.py`, `figures/make_higgs_figure.py`). `wilson_potential` and the `eps` option of `exit_basins` give
+  the Wilson-plaquette (lattice) version of the potential, following the small-plaquette expansion of J. M. Lockwood, *Lattice Spectral
+  Architecture* (2026); the connections to Lockwood and T. Romanov (2026), including a Hessian bound on the lattice potential and its Lyapunov cap, are in
+  `YANGMILLS.md` section 6 (`figures/analyse_wilson_yangmills.py`, `figures/analyse_lyapunov_bound.py`, `figures/analyse_lyapunov_highE.py`).
+  `higgs_langevin` adds noise to the Higgs toy (final-well probabilities, `figures/analyse_langevin.py`), and `exit_basins3` is the three-variable
+  model with z free (six exit half axes, `figures/analyse_three_variable.py`, `figures/analyse_inplane_shift.py`); results in `YANGMILLS.md` sections 8 and 9.
 
 ## Related work
 

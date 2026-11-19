@@ -1,7 +1,8 @@
 # Exit basins of homogeneous SU(2) Yang-Mills mechanics
 
 Module `lakes_of_wada/yangmills.py`, tests in `tests/test_yangmills.py`, analysis `figures/analyse_yangmills.py` (about 8 minutes), figure `figures/yangmills.png`, numbers `figures/yangmills_analysis.csv`.
-Labels: **Exact** (identity or test that can fail), **Counted** (a computed number with its conditions), **Not shown**.
+Labels: **Exact** (identity or test that can fail), **Counted** (a computed number with its conditions), **Not shown**, **Idea** (untested).
+Section 6 (connections to Lockwood and Romanov) adds `wilson_potential` and `figures/analyse_wilson_yangmills.py`; references are in section 7; sections 8 and 9 are the Langevin Higgs toy and the three-variable model.
 
 ## 1. The system and what an exit is
 
@@ -94,3 +95,117 @@ that weak dissipation helps (`PHYSICS.md`, section 1; I did not re-read that pap
 tell Wada from pixel noise at the resolutions used, and the labels at gamma = 0.02 are not converged in the step. The smooth inner region is not Wada at any friction in the table. The value at gamma = 0.1 (D = 1.45) is a partly fractal boundary, not an everywhere-fractal one.
 
 **Not done.** More wells (the number of final states is fixed at four by the square symmetry of the model; the repository's n-channel results suggest nothing special about four); a derived Higgs sector or a time-dependent coupling; friction smaller than 0.02; larger grids at weak friction (the cost grows as 1/gamma); the same section in 3D phase space (released with momentum).
+
+
+## 6. Connections to Lockwood (2026) and Romanov (2026), and a lattice version of the potential
+
+**What I could read.** [L] is Lockwood's *Lattice Spectral Architecture* (16 Nov 2026, research-synthesis draft; the PDF you attached, which I read in part: the abstract, contents, sections 15.4 and 17.4). The authors say it is a synthesis and a proposed research interface and not a solution of the Yang-Mills existence or mass-gap problem. [R] is Romanov's *Three-Dimensional Lattice Yang-Mills Theory in a Forest Gauge: A Dobrushin Range and a Certified Curvature Bound* (ai.viXra.org:2610.0069, v1, 9 pages), **read in full from the PDF you supplied** (text, not the Lean files, code or certificates, which I did not run, and I did not check its proofs). It works with Wilson lattice Yang-Mills on Z^3 in a gauge that fixes one link per site along a period-3 forest, and proves two things at strong coupling and fixed lattice spacing: for SU(2) a unique state, reflection positivity and a transfer-matrix gap m >= -log(7 beta_W / 4) for beta_W < 4/7 (Theorem 1.1, a Dobrushin argument that Romanov shows cannot go further in any forest gauge), and for every compact group a field-uniform bound |Hess S_0| <= h = 9.599991 on the plaquette action S_0 = sum_p Re Tr Q_p restricted to the free links, certified in exact rational and interval arithmetic (Theorem 1.2), with a lower bound 9.3479 for the optimal constant in that gauge (Proposition 1.3). It relies on two unrefereed Zenodo works of Bhattacharjee, Bhattacharya and Lockwood, which I know only through [R]. It says itself that none of this approaches weak coupling or the continuum limit. [M] is *The Yang-Mills Mass Gap from One Bound at One Scale* (Bhattacharjee, Bhattacharya, Lockwood, Romanov, Sessford, Singha Roy; Preprints.org 202611.1282.v1, 12 Nov 2026, not peer reviewed): **abstract only**. It claims a strong-coupling lattice mass gap in four dimensions and, for tori, a mass gap and unique vacuum from one partition-function bound at one scale; the abstract itself says that bound is open at weak coupling.
+None of the three is checked here beyond reading; the connections are to their stated settings.
+
+### 6a. The potential x^2 y^2 / 2 is the small-angle limit of a Wilson plaquette (Exact), and so there is a lattice version of the model
+
+[L] section 15.4 derives, for a smooth anti-Hermitian field A and plaquette U_p, 1 - (1/n) Re Tr U_p = (a^4 / 2n) ||F||^2_HS + O(a^5), with F = dA + [A, A]. For the constant SU(2) links of this file, U_1 = exp(-i eps x s_1 / 2), U_2 = exp(-i eps y s_2 / 2) (s the Pauli matrices), the plaquette can be written in closed form:
+
+V_eps(x, y) = (4 / eps^4)(1 - (1/2) Re Tr U_p) = (8 / eps^4) sin^2(eps x / 2) sin^2(eps y / 2),
+
+and ||F||^2_HS for F = [A_1, A_2] is x^2 y^2 / 2, so V_eps -> x^2 y^2 / 2 as eps -> 0 (difference 1.4e-3 at eps = 0.1, 1.4e-5 at 0.01 on the test points). This is a way to **derive** the quartic potential of section 1, which there was taken from the literature, from a Wilson action, at least for this one plaquette of constant links.
+- **Exact (tests).** The closed form agrees with an explicit SU(2) matrix product to 4e-16 on 200 random (eps, x, y) (`test_wilson_potential_is_the_plaquette`); the force equals the numerical gradient; V_eps is periodic with period 2 pi / eps and bounded by 8 / eps^4 (the valleys repeat: gauge copies in the angle variables).
+- **Counted.** `exit_basins(..., eps=...)` runs the same first-passage problem with V_eps (E = 1, n = 100 grid, dt 0.002, `figures/analyse_wilson_yangmills.py`, `figures/wilson_yangmills_analysis.csv`). Fraction of states whose label differs from the continuum label:
+
+| eps | 0.05 | 0.1 | 0.2 | 0.4 | step floor (continuum, dt against dt/2) |
+|---|---|---|---|---|---|
+| R = 2 | 0.016 | 0.032 | 0.050 | 0.093 | 0.0006 |
+| R = 3 | 0.219 | 0.258 | 0.311 | 0.368 | 0.087 |
+
+At R = 2, where the labels are converged in the step, the change is well above the floor even at eps = 0.05 and grows like eps^0.86 over the four values (log-log slope between 0.05 and 0.4). **Reading:** the change in the potential is of relative order eps^2 x^2, and a uniform perturbation of size delta changes a fraction of the labels about delta^alpha with alpha = 0.43 at R = 2 (section 2); eps^(2 alpha) = eps^0.86 matches. It is a consistency check on four points, not a derivation (the perturbation is not uniform: it grows along the valleys), and at R = 3 the labels are not converged, so those numbers only say that
+the change exceeds the step floor. I did not compute the dimension or the Wada profile for the lattice potential.
+- **Idea.** Because V_eps is periodic, the full model on the angle variables lives on a torus; asking which of the four-channel structure survives at eps of order 1, where the neighbouring valleys at 2 pi / eps are reached, is a different problem that this file does not address.
+
+### 6b. The zero-mode setting and the single scale ([M]; Idea, mostly)
+
+The homogeneous model of section 1 is the spatially constant sector of Yang-Mills theory on a torus (I recall this from the small-volume literature of Luscher and van Baal; not re-checked here). [M] treats the continuum theory on tori and states its result in terms of one bound at one scale. In the classical zero-mode problem the same thing is exact and elementary: x -> s x, t -> t / s, E -> s^4 E (section 1) means that E^(1/4) is the only scale, so the exit basins at energy E are those at E = 1 with lengths rescaled, and a D that depends on R (section 2) depends on the ratio R / E^(1/4). Whether [M]'s scale and this one are related I cannot say from an abstract. What can be said is the negative: [M] and [L] both state that no weak-coupling bound is established, and this repository does not
+address the quantum gap either (`PHYSICS.md` 4.3, item 1).
+
+### 6c. Gauge sectors and the 'relaxation sector' ([L] section 14.3; Idea)
+
+[L] distinguishes, in its sixteen-state Z2 plaquette, a gauge-invariant relaxation sector from the complete configuration space. The truncation of section 1 has the same two-level structure in the classical theory: of the nine components of a spatially constant SU(2) field A_i^a, rotations in colour space and in space remove the gauge and rotation freedom and leave diagonal values (x, y, z) with z set to 0 here; this is the same reduction as 'Mixmaster x SO(3)' in `MIXMASTER.md`, where the momentum constraint plays the role of the Gauss law. The test of the truncation, the three-variable model with z free and the question whether the section x = 0 still separates the four channels, is section 9.
+
+### 6d. Friction and heat-bath relaxation, and the clock ([L] sections 4, 9, 17.4; Idea)
+
+The Higgs toy of section 5 relaxes by a deterministic friction, and its basins are the zero-temperature statement. [L] treats the stochastic relaxation of a Wilson measure (heat-bath projections, a continuous-time generator with its update clock fixed, an entropy-dissipation bound under an extra tensorization hypothesis, section 17.4). The two are different dynamics (a Gibbs sampler on a lattice measure against Newtonian motion with drag), so this is an analogy, not a derivation. The analogy suggests one concrete experiment: add noise to the Higgs toy at the temperature that goes with the friction (Langevin), and measure the probability of each final well from a given start; the fractal boundaries of section 5 should then be smoothed at a scale set by the noise, and the weak-friction cases where D approaches 2 should show the largest smoothing.
+Run in section 8: the prediction holds, and in a quantitative form. A methodological point from [L] also applies directly: its negative controls show that an arbitrarily rescaled sampler clock establishes nothing about physical conclusions, and the corresponding statement here is the one already made, that the numbers depend on R (section 2) and on gamma (section 5) and that neither is a physical constant.
+
+### 6e. A Hessian bound for the lattice potential, and what it says about chaos ([R] Theorem 1.2; Exact and Counted)
+
+[R]'s central object is a bound on the Hessian of the plaquette action, uniform in the field. For a Hamiltonian system a Hessian bound has a direct dynamical meaning, and our two potentials differ exactly on that point.
+- **Exact.** If |Hess V| <= h (operator norm), the tangent flow d'' = -(Hess V) d satisfies |d(t)| <= C exp(sqrt(h) t): put Phi = |d'|^2 + h|d|^2, then Phi' <= 2 sqrt(h) Phi. So **sqrt(h) bounds every Lyapunov exponent**, at every energy.
+- **Counted (and one exactly attained value).** For V_eps, Hess V_eps = H(eps x, eps y) / eps^2 with H = [[4 cos(t) sin^2(p/2), 2 sin(t) sin(p)], [2 sin(t) sin(p), 4 cos(p) sin^2(t/2)]]. Its eigenvalues lie in [-4, 4] (grid 1500^2 and a local optimiser; the test uses 400^2), and -4 is attained exactly at t = p = pi, the top of the potential, where H = -4 I. So h = 4 / eps^2 and the Lyapunov exponent is at most 2 / eps. This bound is for the Euclidean coordinates (x, y) of this file; [R]'s h = 9.599991 is for a different graph (the Z^3 lattice in the forest gauge) and the metric -Tr(XY), and does not transfer. The one-plaquette potential is the one-site periodic lattice with the third link set to the identity, and [R] notes that its forest cannot be imposed on a torus; I did not try to carry its gauge to this case.
+- **Continuum.** x^2 y^2 / 2 has no Hessian bound: along a valley the eigenvalue grows like x^2 (the transverse oscillation, which is stable, not chaotic). The unstable part is bounded by the energy: **Exact** (`test_continuum_negative_curvature_is_bounded_by_xy`), -lambda_min(Hess V) <= |xy| <= sqrt(2E) on V <= E, and the maximum of sqrt(-lambda_min) along the sampled orbits is 1.189 = 2^(1/4), the value of (2E)^(1/4) at E = 1.
+  This is a statement about the local instability and not by itself a bound on the exponent.
+
+Measured finite-time exponents (variational equation, 400 states on the section x = 0 at E = 1, T = 40; `figures/analyse_lyapunov_bound.py`, `figures/lyapunov_bound.csv`):
+
+| potential | mean | 99th percentile | max | Hessian bound 2/eps |
+|---|---|---|---|---|
+| continuum | 0.386 | 0.615 | 0.642 | none |
+| eps = 0.4 | 0.384 | 0.608 | 0.651 | 5 |
+| eps = 0.2 | 0.376 | 0.621 | 0.642 | 10 |
+| eps = 0.1 | 0.377 | 0.604 | 0.618 | 20 |
+
+At E = 1 the lattice and the continuum exponents agree to within about 3 % in the mean (the orbits do not reach the scale 1/eps), and the bound is loose by a factor of 8 to 31. Near the barrier (eps = 0.4, 200 states per row, T = 10, `figures/analyse_lyapunov_highE.py`, `figures/lyapunov_highE.csv`):
+
+| E / barrier (barrier 8/eps^4 = 312.5) | 0.01 | 0.25 | 0.5 | 0.75 | 1.5 |
+|---|---|---|---|---|---|
+| mean exponent | 0.45 | 1.09 | 1.29 | 1.35 | 0.89 |
+| max | 0.88 | 1.80 | 2.00 | 2.05 | 2.18 |
+
+All are below the bound 5.0, and the bound is within a factor of about 2.3 of the largest exponent there. The mean peaks near three quarters of the barrier and falls above it, where orbits rotate over the top. These are finite-time exponents from 200 to 400 starts, with regular orbits included in the means; they are not converged values of the maximal exponent. **What this adds to the earlier sections:** the bounded-Hessian lattice model has a rigorous, size-independent cap on its instability, which the continuum model lacks, and the chaos of the E = 1 section is the same in both to the accuracy measured; the lattice regularisation changes the exit labels (section 6a) without changing the exponent.
+
+### 6f. The strong-coupling range of [R] corresponds to energies at the top of the barrier (Exact arithmetic, Idea as an identification)
+
+The weight exp(-V_eps / T) is exp(N beta Re Tr U_p) up to a constant with N = 2 and beta = 1 / (eps^4 T), so in [R]'s convention beta_W = N^2 beta = 4 / (eps^4 T). [R]'s Dobrushin range beta_W < 4/7 therefore corresponds to T > 7 / eps^4, which is 7/8 of the barrier height 8 / eps^4, and its curvature range beta_W < 0.2083 (SU(2)) to T > 19.2 / eps^4, about 2.4 barriers. The E = 1 study of sections 1 to 3 has T of order 1, that is beta_W of about 156, 2500 and 40000 for eps = 0.4, 0.2 and 0.1. **So the regime in which [R] and [L] prove things is, in this toy, the regime in which the orbits are not confined to the valleys at all, and the valley and Wada structure studied here lives in the opposite regime, at weak coupling, where [R] states that nothing is claimed.**
+The identification is only at the level of the single-plaquette weight: [R]'s statements are for the full lattice measure with many links, E is not T for Newtonian motion (the kinetic energy adds T per degree of freedom), and a Gibbs measure is not an orbit. It is a way to see the mismatch of regimes, not a bridge between the two kinds of result.
+
+## 7. References for section 6
+
+* [L] J. M. Lockwood, *Lattice Spectral Architecture*, research-synthesis draft for author and specialist review, 16 November 2026 (PDF supplied by the repository owner; read: abstract, contents, sections 15.4 and 17.4).
+* [R] T. Romanov, *Three-Dimensional Lattice Yang-Mills Theory in a Forest Gauge: A Dobrushin Range and a Certified Curvature Bound*, ai.viXra.org:2610.0069 v1 (2026), 9 pages; code, certificates and Lean files doi:10.5281/zenodo.23783317, github.com/romanov360/yang-mills-3d-forest-gauge (text read; code, Lean and certificates not run). Unrefereed. [R] cites, and I know only through it: D. Bhattacharjee and U. Bhattacharya, doi:10.5281/zenodo.23449466; D. Bhattacharjee, U. Bhattacharya and J. M. Lockwood, *Yang-Mills mass gap in 4D: lattice SU(N) and every compact simple group*, doi:10.5281/zenodo.23729004 (both unrefereed).
+* [M] D. Bhattacharjee, U. Bhattacharya, J. M. Lockwood, T. Romanov, I. J. Sessford, S. Singha Roy, *The Yang-Mills Mass Gap from One Bound at One Scale*, Preprints.org 202611.1282.v1 (12 November 2026), [doi:10.20944/preprints202611.1282.v1](https://doi.org/10.20944/preprints202611.1282.v1), not peer reviewed. Abstract only.
+
+## 8. Langevin version of the Higgs toy (`higgs_langevin`, `figures/analyse_langevin.py`, `figures/langevin_analysis.csv`)
+
+Suggested by the heat-bath relaxation of [L] (section 6d, an analogy and not a derivation): the damped motion of section 5 gets a noise term at the fluctuation-dissipation temperature T, q'' = -grad V - gamma q' + sqrt(2 gamma T) xi, so the final well is random and each start has a **probability** of ending in each well. BAOAB splitting, 20 noise realisations per start, released from rest on the 100 x 100 grid of the saved lambda = 1 deterministic maps (every second point of the 200 x 200 grid), settled when within 0.3 of a minimum with mechanical energy below 0.04 (the saddle between wells is near V = 0.084). T = 0 is the deterministic map (**Exact (tests)**: `test_langevin_probabilities_and_zero_noise_limit`, `test_langevin_square_symmetry`).
+
+**Counted.** 'flip' is the mean probability of ending in a well other than the deterministic one; 'mixed' is the fraction of starts whose largest probability is below 0.9. No realisation was unsettled in any row.
+
+| gamma | T = 1e-6 | 1e-5 | 1e-4 | 1e-3 | 1e-2 | slope of log flip against log T (lowest three T) | alpha / 2 (section 5) |
+|---|---|---|---|---|---|---|---|
+| 0.3, flip | 0.002 | 0.008 | 0.024 | 0.068 | 0.218 | 0.49 | 0.53 (alpha = 1.07, boundaries are curves) |
+| 0.3, mixed | 0.007 | 0.022 | 0.060 | 0.183 | 0.560 | | |
+| 0.1, flip | 0.050 | 0.099 | 0.193 | 0.327 | 0.488 | 0.30 | 0.28 (alpha = 0.55) |
+| 0.1, mixed | 0.109 | 0.220 | 0.404 | 0.614 | 0.778 | | |
+| 0.05, flip | 0.262 | 0.341 | 0.419 | 0.485 | 0.557 | 0.10 | 0.11 (alpha = 0.21) |
+| 0.05, mixed | 0.464 | 0.564 | 0.650 | 0.716 | 0.812 | | |
+
+**Reading.** (1) The prediction of 6d, that the weak-friction cases are the ones whose basins are most blurred by noise, holds: at every T the flip and mixed fractions rise as gamma falls. (2) The slopes agree with alpha/2 at all three frictions (0.49 against 0.53, 0.30 against 0.28, 0.10 against 0.11, all with the smooth case capped by 1/2). This is what one expects if the noise acts like a random displacement of the start of size about sqrt(T) and the fraction of changed labels follows the uncertainty exponent of section 5, f ~ delta^alpha. **That is a consistency check, not a derivation:** the displacement scale is
+assumed, the alphas are the fits of section 5 (fits over 4 to 6 values of eps), and the slope uses three temperatures. At the top two temperatures the slopes fall (0.17 at gamma = 0.1, 0.06 at 0.05) because the flip fraction saturates (its ceiling for four wells is 0.75). (3) At gamma = 0.05 and T = 1e-6, a thermal kinetic energy of 1e-6, 26 % of the starts already end in a different well, against a deterministic step floor of 0.001: the deterministic basin map of section 5 is physically meaningless at that friction for any noise above about 1e-7.
+**Not done:** noise that depends on position or a coloured noise; a noise level tied to a physical temperature of the gauge field (T here is in the units of the toy); the 100 x 100 grid and T of 1e-6 to 1e-2 only; lambda other than 1.
+
+## 9. The three-variable model with z free (`exit_basins3`, `figures/analyse_three_variable.py`, `figures/analyse_inplane_shift.py`)
+
+H = p^2/2 + (x^2 y^2 + y^2 z^2 + z^2 x^2)/2: the spatially constant SU(2) field with all three diagonal components, three valleys (six half axes) instead of two (four). z = p_z = 0 is invariant (**Exact (tests)**: `test_three_variable_reduces_to_two_and_is_symmetric`, 99.9 % agreement with the two-variable labels at z = p_z = 0, and the z -> -z symmetry exchanging labels 5 and 6). The question of 6c: if z is released, does the section x = 0 still separate four channels? Starts are the (y, p_y) grid of the two-variable section (E = 1, n = 100) with (z, p_z) = (0, zeta) or (zeta, 0), p_x from the energy; the exit is the axis of the largest |coordinate| at radius R, labels 1 to 6.
+
+**Counted.** Fraction of states ending on a z axis, and fraction of the others whose x/y label differs from the two-variable label (R = 2, where the labels are converged in the step; the step floor of the 3-variable code is 0.0006):
+
+| zeta | 0.01 | 0.03 | 0.1 | 0.3 |
+|---|---|---|---|---|
+| (z, p_z) = (0, zeta): on z axes | 0.0000 | 0.0004 | 0.0050 | 0.048 |
+| x/y label differs | 0.008 | 0.025 | 0.073 | 0.207 |
+| (z, p_z) = (zeta, 0): on z axes | 0.0000 | 0.0002 | 0.0094 | 0.050 |
+| x/y label differs | 0.008 | 0.024 | 0.064 | 0.190 |
+
+At zeta = 0.3 about 1.4 to 2 % of the starts are invalid (the energy cannot supply p_z). At R = 3 the numbers are 0.002 to 0.137 on z axes and 0.17 to 0.44 changed, but the step floor there is 0.087 and the labels are not converged, so I do not read them beyond 'above the floor'.
+**Control, same size of shift inside the plane** (`figures/inplane_shift.csv`, R = 2): a shift of eps = 0.01, 0.03, 0.1, 0.3 in y changes 9.3, 16, 27, 43 % of the labels (12, 20, 34, 50 % in p_y).
+
+**Reading.** The four-channel picture survives a small transverse perturbation: for zeta of 0.1 or less at most about 1 % of the starts leave through a z axis, and the x/y labels change on 0.8 % to 7 %, about 12 times fewer than for the same shift inside the plane at zeta = 0.01 (0.8 % against 9.3 %). The growth with zeta is also different: the transverse change grows like zeta^0.95 (0.01 to 0.1 gives 8.9 times) and the in-plane change like zeta^0.46 (2.9 times; the exponent alpha = 0.43 of section 2). This is consistent with the picture that the z direction is a stable transverse oscillation (z'' = -z(x^2 + y^2), a frequency^2 that is positive) while the fractal structure of the exit map lives in the plane, but it is a statement
+about shifts of at most 0.3 at E = 1 and R = 2: I did not compute the dimension of the boundary in the full four-dimensional section, a Wada profile with six channels, or the Lyapunov exponents of the three-variable orbits, and 'stable' is the linearised argument, not a proof (a parametric resonance of z could reach it for particular orbits). **So the truncation of section 1 is not shown to be wrong at small z, and not shown to be right at large z; the large-z regime (zeta of 0.3 puts 5 % of the orbits on the z axes) is where the model has a third channel pair.**
