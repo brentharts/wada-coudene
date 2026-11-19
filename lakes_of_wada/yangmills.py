@@ -255,3 +255,66 @@ def exit_basins3(y, py, z=0.0, pz=0.0, E=1.0, R=2.0, dt=0.004, t_max=60.0):
         alive = a[~ex]
     label[idx] = out
     return label.reshape(shape)
+
+
+def exit_labels3(pos, mom, R=3.0, dt=0.005, t_max=150.0):
+    """First-passage exit of H = p^2/2 + (x^2 y^2 + y^2 z^2 + z^2 x^2)/2 from arbitrary starts.  ``pos`` and ``mom`` are (n, 3) arrays.
+    Labels as in ``exit_basins3`` (1 +x, 2 +y, 3 -x, 4 -y, 5 +z, 6 -z, the axis with the largest |coordinate| at radius R; 0 = undecided).
+    Velocity Verlet.  The flow is invariant under the octahedral group (permutations and sign changes of x, y, z), and ``exit_labels3``
+    is equivariant under it up to rounding, which chaos can amplify."""
+    P = np.array(pos, float).reshape(-1, 3).copy()
+    Q = np.array(mom, float).reshape(-1, 3).copy()
+    n = P.shape[0]
+    out = np.zeros(n, dtype=int)
+    alive = np.arange(n)
+
+    def force(p):
+        x, y, z = p[:, 0], p[:, 1], p[:, 2]
+        return np.stack([-x * (y * y + z * z), -y * (x * x + z * z), -z * (x * x + y * y)], axis=1)
+    F = force(P)
+    for _ in range(int(t_max / dt)):
+        if alive.size == 0:
+            break
+        a = alive
+        Q[a] += 0.5 * dt * F[a]
+        P[a] += dt * Q[a]
+        F[a] = force(P[a])
+        Q[a] += 0.5 * dt * F[a]
+        ex = np.einsum("ij,ij->i", P[a], P[a]) > R * R
+        if ex.any():
+            e = a[ex]
+            k = np.argmax(np.abs(P[e]), axis=1)
+            sgn = P[e][np.arange(e.size), k] > 0
+            out[e] = np.array([[3, 1], [4, 2], [6, 5]])[k, sgn.astype(int)]
+        alive = a[~ex]
+    return out
+
+
+# the plane x + y + z = 0 with the orthonormal frame (E1, E2); the six half axes project to the vertices of a regular hexagon
+E1 = np.array([1.0, -1.0, 0.0]) / np.sqrt(2.0)
+E2 = np.array([1.0, 1.0, -2.0]) / np.sqrt(6.0)
+# angle (degrees) of the projection of each label's half axis in the frame (E1, E2): +x 30, ... computed, see HEX_ORDER
+HEX_ORDER = None   # filled below
+
+
+def _hex_order():
+    ang = {}
+    for lab, v in ((1, (1, 0, 0)), (2, (0, 1, 0)), (3, (-1, 0, 0)), (4, (0, -1, 0)), (5, (0, 0, 1)), (6, (0, 0, -1))):
+        v = np.array(v, float)
+        ang[lab] = float(np.degrees(np.arctan2(v @ E2, v @ E1)) % 360.0)
+    return sorted(ang, key=ang.get), ang
+
+
+HEX_ORDER, HEX_ANGLES = _hex_order()
+
+
+def plane_start(u, v):
+    """Points (u, v) of the plane x + y + z = 0 as (n, 3) positions."""
+    u = np.asarray(u, float).ravel(); v = np.asarray(v, float).ravel()
+    return u[:, None] * E1[None, :] + v[:, None] * E2[None, :]
+
+
+def exit_plane_rest(u, v, R=3.0, dt=0.005, t_max=150.0):
+    """Labels of the orbits released from rest at the points (u, v) of the plane x + y + z = 0."""
+    P = plane_start(u, v)
+    return exit_labels3(P, np.zeros_like(P), R=R, dt=dt, t_max=t_max).reshape(np.shape(u))
