@@ -267,7 +267,12 @@ These are ideas to examine, ordered from the most concrete. None has support yet
    (section 9; the four-channel section survives small transverse perturbations, about 12 times less sensitive than the same shift inside
    the plane). Section 10 relates the work to the spectre fork: the quartic potential is the non-abelian
    term that its Gaussian Wilson model omits, the trivial-field Hessian of its A2 + A2 action is 15 (a Romanov-style lower bound), and a
-   first Wada experiment on its internal-space window failed because the tile-orientation labelling is not a partition.
+   first Wada experiment on its internal-space window failed because the tile-orientation labelling is not a partition. Section 11 then
+   rasterises the four exact window pieces: the children of a piece are not a Wada partition (97 % of seam points have exactly two children
+   at the finest scale), the box-count dimension reproduces the source's 1.1110 to 0.01, and the uncertainty-fraction estimator used for the
+   exponents in this repository drifts by 0.1 or more with the fit window on the same sets. Section 12 builds the covering of internal space by the windows of neighbouring tiles (it needs the fact that tile vectors lie in a
+   sublattice of index 36; a first version without it failed), checks that it has no holes and no overlap away from the raster tolerance, and
+   finds (after shrinking the tolerance with the resolution, which removes the apparent 3 to 5 % double coverage) that three or more windows meet at only about 1 to 14 % of boundary points (r = 0.008 to 0.064): no Wada property at that resolution.
 3. **Confinement as a geometric statement (the proposal).** If colour-singlet
    composites are the only finite-energy states because quarks are junctions of
    three one-dimensional spaces, a gap could appear as the energy cost of
