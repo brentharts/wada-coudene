@@ -106,14 +106,14 @@ cands = np.concatenate(cands); print("lattice candidates", len(cands), "box edge
 # Placements (b, w) whose footprint lies within R2 of the footprint of the tile a at the origin; a (b = a, w = 0) is included.
 # At internal point z (frame of Z_0(S_a)) the tile (b, w) is present iff z_b = B z + d lies in Z_0(S_b).
 R2 = float(os.environ.get("R2", "1.0")); DIAM = float(os.environ.get("DIAM", "0")); DELTA = float(os.environ.get("DELTA", "0.03")); NS = int(os.environ.get("NS", "3000"))
-IN_T, OUT_T = 0.008, 0.016                           # nearest-point distance: in if < IN_T, out if > OUT_T, else ambiguous
+IN_T, OUT_T = float(os.environ.get("IN_T", "0.008")), float(os.environ.get("OUT_T", "0.016"))                           # nearest-point distance: in if < IN_T, out if > OUT_T, else ambiguous
 PL = []
 for b in range(len(FR)):
     Sb, Ab, Rb, cb, _, _ = FR[b]
     v_b = np.array(VEC[keys[b]][0], dtype=np.int64)
     W = cands[in_lattice(cands - (v_b - u_a))]
     dd = ((c1 - cb)[None, :] + W @ STAR.T) @ Rb / scale
-    keep = np.linalg.norm(dd, axis=1) <= 2 * RAD + 1e-9
+    keep = np.linalg.norm(dd, axis=1) <= 2 * RAD + 0.6      # z may lie up to 0.3 beyond the window radius
     for w, d in zip(W[keep], dd[keep]):
         poly = shape(Sb, Ab, np.array([int(x) for x in w], dtype=object))
         if poly.distance(P1) < R2:
@@ -124,6 +124,7 @@ rng_ = np.random.default_rng(7)
 Zc = trees[S1].data; lo, hi = Zc.min(0) - 0.3, Zc.max(0) + 0.3
 Z0 = rng_.uniform(lo, hi, (NS, 2)); ph = rng_.uniform(0, 2 * np.pi, NS)
 Z1 = Z0 + DELTA * np.stack([np.cos(ph), np.sin(ph)], 1)
+if os.environ.get('SWAP'): Z0, Z1 = Z1, Z0                  # evaluate the reversed step z' -> z
 def state(Zs):
     pres = np.zeros((len(Zs), len(PL)), bool); amb = np.zeros((len(Zs), len(PL)), bool)
     for k, (b, Sb, B, d, w, poly) in enumerate(PL):
@@ -211,7 +212,7 @@ json.dump(dict(NS=NS, DELTA=DELTA, R2=R2, usable=int(usable.sum()), changed=int(
                counts={"%d,%d" % k: v for k, v in shape_c.items()}, feq=int(sum(e["feq"] for e in ev)),
                link_changed=int(sum(e["link_changed"] for e in ev)), nb_changed=int(sum(e["nb_changed"] for e in ev)),
                simple=len(simple), simple_link_changed=int(sum(e["link_changed"] for e in simple))),
-          open("figures/spectre_flip_contacts_c%d.json" % a, "w"), indent=1)
+          open("figures/spectre_flip_contacts_c%d%s.json" % (a, "_swap" if os.environ.get("SWAP") else ""), "w"), indent=1)
 
 # ---- sample-level contact-pattern test on the footprint P1 of the tile at the origin ----
 import networkx as nx
@@ -233,4 +234,4 @@ for i in nvalid:
 print("valid pairs", len(nvalid), " keys (same tile set, graph isomorphic, isomorphic with classes):", dict(res))
 print("(tiles meeting the footprint before, after):", sorted(sizes.items(), key=lambda x: -x[1])[:10])
 json.dump(dict(valid_pairs=len(nvalid), changed=int(changed.sum()), patterns={str(k): v for k, v in res.items()},
-               sizes={str(k): v for k, v in sizes.items()}), open("figures/spectre_flip_contacts_pattern_c%d.json" % a, "w"), indent=1)
+               sizes={str(k): v for k, v in sizes.items()}), open("figures/spectre_flip_contacts_pattern_c%d%s.json" % (a, "_swap" if os.environ.get("SWAP") else ""), "w"), indent=1)
