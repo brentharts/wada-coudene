@@ -265,7 +265,9 @@ These are ideas to examine, ordered from the most concrete. None has support yet
    temperature added to the Higgs toy (section 8; the fraction of final wells changed by noise grows like T^(alpha/2), with the
    uncertainty exponent alpha of the deterministic map, and is largest at weak friction), and the three-variable model with z free
    (section 9; the four-channel section survives small transverse perturbations, about 12 times less sensitive than the same shift inside
-   the plane).
+   the plane). Section 10 relates the work to the spectre fork: the quartic potential is the non-abelian
+   term that its Gaussian Wilson model omits, the trivial-field Hessian of its A2 + A2 action is 15 (a Romanov-style lower bound), and a
+   first Wada experiment on its internal-space window failed because the tile-orientation labelling is not a partition.
 3. **Confinement as a geometric statement (the proposal).** If colour-singlet
    composites are the only finite-energy states because quarks are junctions of
    three one-dimensional spaces, a gap could appear as the energy cost of

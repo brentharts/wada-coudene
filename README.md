@@ -347,7 +347,7 @@ Package layout: `maps` (Anosov map + pluggable perturbations), `classify`
   Architecture* (2026); the connections to Lockwood and T. Romanov (2026), including a Hessian bound on the lattice potential and its Lyapunov cap, are in
   `YANGMILLS.md` section 6 (`figures/analyse_wilson_yangmills.py`, `figures/analyse_lyapunov_bound.py`, `figures/analyse_lyapunov_highE.py`).
   `higgs_langevin` adds noise to the Higgs toy (final-well probabilities, `figures/analyse_langevin.py`), and `exit_basins3` is the three-variable
-  model with z free (six exit half axes, `figures/analyse_three_variable.py`, `figures/analyse_inplane_shift.py`); results in `YANGMILLS.md` sections 8 and 9.
+  model with z free (six exit half axes, `figures/analyse_three_variable.py`, `figures/analyse_inplane_shift.py`); results in `YANGMILLS.md` sections 8 and 9. Section 10 is the connection to the `spectre` fork (`figures/analyse_spectre_hessian.py`, `figures/spectre_window_orientation.py`; both need `SPECTRE_DIR` pointing at a clone of it).
 
 ## Related work
 
