@@ -93,12 +93,13 @@ P1 = shape(S1, A1, np.zeros(4, dtype=object))
 # candidate relative vectors: small physical part, bounded internal part, in the right coset for each class b
 ymax = 2 * RAD * scale + 2 * max(np.linalg.norm(f[3]) for f in FR) + 1
 M4 = np.vstack([PH, STAR]); Mi = np.linalg.inv(M4)
-bnd = int(np.ceil(np.linalg.norm(Mi, axis=1).max() * np.hypot(12.0, ymax))) + 1
+PBOX = float(os.environ.get('PBOX','20'))
+bnd = int(np.ceil(np.linalg.norm(Mi, axis=1).max() * np.hypot(PBOX, ymax))) + 1
 rng = np.arange(-bnd, bnd + 1)
 cands = []
 for x0 in rng:
     Vc = np.array(list(itertools.product([x0], rng, rng, rng)))
-    ok = np.linalg.norm(Vc @ PH.T, axis=1) < 12.0
+    ok = np.linalg.norm(Vc @ PH.T, axis=1) < PBOX
     Vc = Vc[ok]
     if len(Vc): cands.append(Vc[np.linalg.norm(Vc @ STAR.T, axis=1) < ymax])
 cands = np.concatenate(cands); print("lattice candidates", len(cands), "box edge", bnd, flush=True)
