@@ -342,7 +342,15 @@ Package layout: `maps` (Anosov map + pluggable perturbations), `classify`
   radius R (the four valleys do not give a true escape); velocity Verlet on the section x = 0. Results, with the strong dependence on R and
   the limits of the Wada test, in [`YANGMILLS.md`](YANGMILLS.md); analysis `figures/analyse_yangmills.py`. `higgs_basins` / `higgs_picture` add a damped
   gauge-Higgs toy (the valleys capped by a Higgs-like ring, four wells) whose basins go from smooth to Wada-like as the friction falls
-  (`YANGMILLS.md` section 5; `figures/analyse_higgs.py`, `figures/make_higgs_figure.py`).
+  (`YANGMILLS.md` section 5; `figures/analyse_higgs.py`, `figures/make_higgs_figure.py`). `wilson_potential` and the `eps` option of `exit_basins` give
+  the Wilson-plaquette (lattice) version of the potential, following the small-plaquette expansion of J. M. Lockwood, *Lattice Spectral
+  Architecture* (2026); the connections to Lockwood and T. Romanov (2026), including a Hessian bound on the lattice potential and its Lyapunov cap, are in
+  `YANGMILLS.md` section 6 (`figures/analyse_wilson_yangmills.py`, `figures/analyse_lyapunov_bound.py`, `figures/analyse_lyapunov_highE.py`).
+  `higgs_langevin` adds noise to the Higgs toy (final-well probabilities, `figures/analyse_langevin.py`), and `exit_basins3` is the three-variable
+  model with z free (six exit half axes, `figures/analyse_three_variable.py`, `figures/analyse_inplane_shift.py`); results in `YANGMILLS.md` sections 8 and 9. Section 10 is the connection to the `spectre` fork (`figures/analyse_spectre_hessian.py`, `figures/spectre_window_orientation.py`; both need `SPECTRE_DIR` pointing at a clone of it). `lakes_of_wada.spectre_window` rasterises the four exact Spectre window pieces from `figures/spectre_window_maps.npz`
+  (made by `figures/dump_spectre_window_maps.py`, which needs `SPECTRE_DIR`; `figures/analyse_spectre_window.py` does not): `YANGMILLS.md` section 11. `figures/make_spectre_window_figure.py` draws `figures/spectre_windows.png`; `figures/spectre_window_covering.py N class` (needs `SPECTRE_DIR`; several minutes) builds the covering by neighbouring windows and writes `figures/spectre_window_covering_*` and `spectre_window_partition_*` (section 12; `figures/spectre_window_neighbours.py` is the failed first attempt). `lakes_of_wada.yangmills.exit_labels3` (3D exit labels from arbitrary starts), `figures/analyse_phason_noise.py` and `figures/analyse_hexagon_exit.py [n] [R] [t_max]` (section 13: Langevin noise as phason noise on a window; the three-variable exit map on the plane x+y+z=0).
+
+Phason flips of the Spectre windows (engine settings, checks, results): [SPECTRE_FLIPS.md](SPECTRE_FLIPS.md).
 
 ## Related work
 

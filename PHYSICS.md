@@ -234,7 +234,10 @@ These are ideas to examine, ordered from the most concrete. None has support yet
    statement about *classical trajectories* in an *open* system. I know of no
    result that turns one into the other. Any link has to be built, not assumed,
    and a classical toy such as the ones in this repository cannot by itself say
-   anything about the quantum gap.
+   anything about the quantum gap. The recent lattice work of Lockwood (2026) and of
+   Bhattacharjee et al. (2026), which include Romanov, states the same limit from the
+   other side: no weak-coupling bound is established there either (`YANGMILLS.md`
+   section 6).
 2. **Chaotic classical Yang-Mills as a source of exit-basin problems.** Homogeneous
    Yang-Mills mechanics is chaotic but, as usually written, bound (the potential
    is confining), so it has no exits. Adding a Higgs potential with several
@@ -251,7 +254,25 @@ These are ideas to examine, ordered from the most concrete. None has support yet
    friction) is in section 5 of the same file: smooth basins at strong friction,
    uncertainty dimension 1.45, 1.79 and 1.97 at friction 0.1, 0.05 and 0.02, and an
    outer boundary whose Wada profile reaches 1 at weak friction. The model is a
-   toy chosen here, not a derived gauge-Higgs truncation.
+   toy chosen here, not a derived gauge-Higgs truncation. *Update:* the quartic
+   potential is the small-angle limit of a Wilson plaquette (Lockwood 2026, section
+   15.4), which gives a periodic lattice version of the model whose exit labels move
+   by 1.6 % to 9.3 % (R = 2) for lattice spacing 0.05 to 0.4. Its Hessian is bounded (eigenvalues in
+   [-4, 4] / eps^2), which caps the Lyapunov exponent at 2 / eps, the same kind of field-uniform
+   Hessian bound as Romanov (2026), Theorem 1.2; the continuum potential has none. The strong-coupling range of
+   Romanov and Lockwood maps, in this toy, to energies at the top of the barrier, the opposite regime to the
+   valleys: `YANGMILLS.md` section 6. Two further runs in `YANGMILLS.md`: noise at the fluctuation-dissipation
+   temperature added to the Higgs toy (section 8; the fraction of final wells changed by noise grows like T^(alpha/2), with the
+   uncertainty exponent alpha of the deterministic map, and is largest at weak friction), and the three-variable model with z free
+   (section 9; the four-channel section survives small transverse perturbations, about 12 times less sensitive than the same shift inside
+   the plane). Section 10 relates the work to the spectre fork: the quartic potential is the non-abelian
+   term that its Gaussian Wilson model omits, the trivial-field Hessian of its A2 + A2 action is 15 (a Romanov-style lower bound), and a
+   first Wada experiment on its internal-space window failed because the tile-orientation labelling is not a partition. Section 11 then
+   rasterises the four exact window pieces: the children of a piece are not a Wada partition (97 % of seam points have exactly two children
+   at the finest scale), the box-count dimension reproduces the source's 1.1110 to 0.01, and the uncertainty-fraction estimator used for the
+   exponents in this repository drifts by 0.1 or more with the fit window on the same sets. Section 12 builds the covering of internal space by the windows of neighbouring tiles (it needs the fact that tile vectors lie in a
+   sublattice of index 36; a first version without it failed), checks that it has no holes and no overlap away from the raster tolerance, and
+   finds (after shrinking the tolerance with the resolution, which removes the apparent 3 to 5 % double coverage) that three or more windows meet at only about 1 to 14 % of boundary points (r = 0.008 to 0.064): no Wada property at that resolution. Section 13 links sections 8 and 9 to the Spectre: Gaussian noise on an exit map is a phason displacement, and on Z_0(O) the exit fraction follows delta^0.889 = delta^(2-D) with the known D = 1.1110 (the displacement picture of section 8 checked where the answer is known); the six exit half axes of the three-variable model are the hexagon of the tile along the cube's three-fold axis (exact), and its exit map on that plane reduces to one angle by homogeneity and is unresolved at exit radius 2.
 3. **Confinement as a geometric statement (the proposal).** If colour-singlet
    composites are the only finite-energy states because quarks are junctions of
    three one-dimensional spaces, a gap could appear as the energy cost of
@@ -296,7 +317,10 @@ These are ideas to examine, ordered from the most concrete. None has support yet
   closer analogue of Fernandez et al.
 * Gauge-Higgs homogeneous Yang-Mills with degenerate vacua, mapped for Wada basins
   (section 4.3, item 2). Done in toy form (`YANGMILLS.md`, sections 1 to 5): the pure x^2 y^2 system
-  with a first-passage exit, and a damped Higgs-capped version with four wells. Not done: a derived Higgs sector.
+  with a first-passage exit, and a damped Higgs-capped version with four wells, and a Wilson-plaquette
+  version of the potential (section 6, after Lockwood 2026). Done: the Langevin version of the Higgs
+  toy (section 8) and the three-variable model (section 9). Not done: a derived Higgs sector; the boundary dimension and a six-channel
+  Wada profile of the three-variable model; the Langevin toy at other lambda.
 * Anything from the owner's own work on the mass gap, once available.
 
 ---
@@ -346,3 +370,8 @@ These are ideas to examine, ordered from the most concrete. None has support yet
   421 (1981); further chaos-in-Yang-Mills context in
   [arXiv:0710.5691](https://arxiv.org/abs/0710.5691) and
   [arXiv:0903.3990](https://arxiv.org/abs/0903.3990).
+* J. M. Lockwood, *Lattice Spectral Architecture*, research-synthesis draft, 16 November 2026 (read in part; see `YANGMILLS.md` section 6).
+* T. Romanov, *Three-Dimensional Lattice Yang-Mills Theory in a Forest Gauge: A Dobrushin Range and a Certified Curvature Bound*,
+  ai.viXra.org:2610.0069 v1 (2026) (read; unrefereed; its code and Lean files not run). D. Bhattacharjee, U. Bhattacharya, J. M. Lockwood, T. Romanov, I. J. Sessford,
+  S. Singha Roy, *The Yang-Mills Mass Gap from One Bound at One Scale*, Preprints.org 202611.1282.v1 (2026),
+  [doi:10.20944/preprints202611.1282.v1](https://doi.org/10.20944/preprints202611.1282.v1) (abstract only; not peer reviewed).
